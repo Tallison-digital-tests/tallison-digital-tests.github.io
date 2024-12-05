@@ -17,14 +17,19 @@
 <body>
 <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/571468/onsite/embed.js" async></script>
 
-    <script>
+<script>
+  var medalia_page = "ExpressServices";
+  var medallia_digital_channel = "Digital";
+  var medallia_trigger = false; // Inicializado como false
 
-    var medalia_page = "ExpressServices";
-    var medallia_digital_channel = "Digital";
-    var medallia_trigger = true;
+  // Define a variável medallia_trigger como true após 5 segundos
+  setTimeout(function() {
+    medallia_trigger = true;
+    console.log("medallia_trigger foi atualizado para:", medallia_trigger);
+  }, 5000);
+</script>
 
-    </script>
-  <app-root></app-root>
+<app-root></app-root>
 </body>
 
 </html>
