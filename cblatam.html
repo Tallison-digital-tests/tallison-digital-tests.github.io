@@ -5,7 +5,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta charset="utf-8" />
   <title>LATAM Survey</title>
-
   
   <script type="text/javascript"></script>
   <base href="/" />
@@ -18,18 +17,22 @@
 <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/571468/onsite/embed.js" async></script>
 
 <script>
+  // Define o idioma padrão da página
+  document.documentElement.lang = "es-ES";
+  var lang = "es-ES";
+  console.log("Idioma configurado para:", document.documentElement.lang);
+
   var medallia_page = "ExpressServices";
   var medallia_digital_channel = "Digital";
-  var lang = es-ES;
-   var medallia_trigger;
-  
- function setMedalliaTrigger() {
+  var medallia_trigger;
+
+  function setMedalliaTrigger() {
     window.medallia_trigger = true; // Popula a variável como true (caso necessário)
     console.log("medallia_trigger foi atualizado para:", window.medallia_trigger);
 
     // Comando para atualizar a visualização no Medallia Digital
     if (typeof KAMPYLE_ONSITE_SDK !== 'undefined') {
-      KAMPYLE_ONSITE_SDK.updatePageView(true);
+      KAMPYLE_ONSITE_SDK.updatePageView(true, { language: "es-ES" });
       console.log("KAMPYLE_ONSITE_SDK.updatePageView(true) chamado com sucesso.");
     } else {
       console.warn("KAMPYLE_ONSITE_SDK não está definido.");
