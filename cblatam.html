@@ -24,7 +24,7 @@
 
   var medallia_page = "ExpressServices";
   var medallia_digital_channel = "Digital";
-  var medallia_trigger = "";
+  var medallia_trigger;
   var PhoneContact = "5541999592496";
   var Premiumpolicy = "Premiumpolicy";
   var SponsorCode =  "SponsorCode";
@@ -49,7 +49,7 @@
 
     // Comando para atualizar a visualização no Medallia Digital
     if (typeof KAMPYLE_ONSITE_SDK !== 'undefined') {
-      KAMPYLE_ONSITE_SDK.updatePageView(true, { language: "es" });
+      KAMPYLE_ONSITE_SDK.updatePageView(true, { language: "es-ES" });
       console.log("KAMPYLE_ONSITE_SDK.updatePageView(true) chamado com sucesso.");
     } else {
       console.warn("KAMPYLE_ONSITE_SDK não está definido.");
