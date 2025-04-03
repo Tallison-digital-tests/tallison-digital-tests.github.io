@@ -1,40 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Medallia Form on Button Click</title>
+  <meta charset="UTF-8">
+  <title>Medallia Survey on Button Click</title>
+  <style>
+    /* Estiliza a tela inteira para centralizar */
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      font-family: sans-serif;
+    }
+
+    /* Estiliza o botão */
+    #openSurveyBtn {
+      background-color: #000000;        /* fundo preto */
+      color: #ffffff;                   /* texto branco */
+      padding: 16px 32px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* drop shadow */
+      transition: all 0.2s ease;
+    }
+
+    /* Efeito hover */
+    #openSurveyBtn:hover {
+      background-color: #222222;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Container da pesquisa */
+    #medallia_container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
+    }
+  </style>
 </head>
 <body>
-    <!-- Botão que vai ativar a pesquisa -->
-    <button id="openSurveyBtn">Open Survey</button>
 
-    <!-- Container onde o formulário será exibido -->
-    <div id="medallia_container"></div>
+  <!-- Botão centralizado -->
+  <button id="openSurveyBtn">Open Survey</button>
 
-    <!-- SDK do Medallia Anywhere -->
-    <script src="https://bradesco.digital-cloud-west.medallia.com/anywhere/anywhere.min.js"></script>
+  <!-- Onde a pesquisa será carregada -->
+  <div id="medallia_container"></div>
 
-    <script>
-        // Inicializa o Medallia Anywhere (mas ainda não mostra o formulário)
-        window.medallia("init", {
-            debug: true, // Mostra logs no console para ajudar no desenvolvimento (remova em produção)
-            property: 630371, // ID da propriedade
-            configurationUUID: "e39fa3f8-ec20-4916-8ef8-ee7b5430572e", // UUID da configuração
-            form: {
-                id: "36636" // ID do formulário criado no DCC
-            },
-            customParameters: {
-                test_parameters_boolean: true,
-                test_parameters_text: "User triggered",
-                test_parameters_number: 789
-            },
-            containerSelector: "#medallia_container" // Onde o formulário será exibido
-        });
+  <!-- SDK do Medallia -->
+  <script
+    src="https://resources.digital-cloud-west.medallia.com/anywhere/anywhere.min.js"
+    onload="initMedallia()"
+  ></script>
 
-        // Evento que exibe o formulário ao clicar no botão
-        document.getElementById("openSurveyBtn").addEventListener("click", function () {
-            window.medallia("show"); // Exibe a pesquisa
-        });
-    </script>
+  <script>
+    function initMedallia() {
+      // Inicializa o Medallia Anywhere
+      window.medallia("init", {
+        debug: true,
+        property: 630371,
+        configurationUUID: "e39fa3f8-ec20-4916-8ef8-ee7b5430572e",
+        form: {
+          id: "36636"
+        },
+        customParameters: {
+          test_parameters_boolean: true,
+          test_parameters_text: "User clicked button",
+          test_parameters_number: 123
+        },
+        containerSelector: "#medallia_container"
+      });
+
+      // Exibe o formulário ao clicar no botão
+      document.getElementById("openSurveyBtn").addEventListener("click", function () {
+        window.medallia("show");
+      });
+    }
+  </script>
 </body>
 </html>
