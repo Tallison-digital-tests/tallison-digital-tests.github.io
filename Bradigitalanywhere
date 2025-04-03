@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Medallia Form on Button Click</title>
+</head>
+<body>
+    <!-- Botão que vai ativar a pesquisa -->
+    <button id="openSurveyBtn">Open Survey</button>
+
+    <!-- Container onde o formulário será exibido -->
+    <div id="medallia_container"></div>
+
+    <!-- SDK do Medallia Anywhere -->
+    <script src="https://bradesco.digital-cloud-west.medallia.com/anywhere/anywhere.min.js"></script>
+
+    <script>
+        // Inicializa o Medallia Anywhere (mas ainda não mostra o formulário)
+        window.medallia("init", {
+            debug: true, // Mostra logs no console para ajudar no desenvolvimento (remova em produção)
+            property: 630371, // ID da propriedade
+            configurationUUID: "e39fa3f8-ec20-4916-8ef8-ee7b5430572e", // UUID da configuração
+            form: {
+                id: "36636" // ID do formulário criado no DCC
+            },
+            customParameters: {
+                test_parameters_boolean: true,
+                test_parameters_text: "User triggered",
+                test_parameters_number: 789
+            },
+            containerSelector: "#medallia_container" // Onde o formulário será exibido
+        });
+
+        // Evento que exibe o formulário ao clicar no botão
+        document.getElementById("openSurveyBtn").addEventListener("click", function () {
+            window.medallia("show"); // Exibe a pesquisa
+        });
+    </script>
+</body>
+</html>
