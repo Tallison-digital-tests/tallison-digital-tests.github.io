@@ -42,41 +42,55 @@
 
 <body>
 
-  <!-- ► INJEÇÃO DO PAINEL DE CONTROLES -->
+ <!-- ► PAINEL DE RESOLUÇÃO (apenas na janela principal) -->
   <script>
-    // só injeta o painel no contexto “pai”, não dentro do iframe
     if (window.top === window) {
-      document.write(`
-        <!-- Painel de Resolução -->
-        <div style="position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border: 1px solid #ccc; z-index: 10000;">
-          <label>
-            Largura:
-            <input type="number" id="frameWidth" value="1280" style="width: 80px;" /> px
+      // 1) Cria o container geral
+      const tester = document.createElement('div');
+      tester.style.cssText = `
+        position: fixed;
+        top: 10px; left: 10px;
+        right: 10px;
+        bottom: 10px;
+        background: #fff;
+        border: 1px solid #999;
+        padding: 10px;
+        z-index: 9999;
+        box-sizing: border-box;
+      `;
+
+      // 2) Monta o HTML interno (inputs + botão + iframe)
+      tester.innerHTML = `
+        <div style="margin-bottom:8px;">
+          <label>Largura:
+            <input type="number" id="frameWidth" value="1280" style="width:80px">
           </label>
-          <label style="margin-left: 10px;">
-            Altura:
-            <input type="number" id="frameHeight" value="800" style="width: 80px;" /> px
+          <label style="margin-left:12px;">Altura:
+            <input type="number" id="frameHeight" value="800" style="width:80px">
           </label>
-          <button id="applyRes" style="margin-left: 10px; padding: 4px 8px;">Aplicar</button>
+          <button id="applyRes" style="margin-left:12px;padding:4px 8px">Aplicar</button>
         </div>
-        <!-- IFrame de Teste -->
-        <div style="position: fixed; top: 80px; left: 20px; right: 20px; bottom: 20px; border: 1px solid #999;">
-          <iframe
-            id="testFrame"
-            src="${location.href}"  /* ou outra URL de teste */
-            style="width:1280px; height:800px; border: none; display: block; margin: 0 auto;"
-          ></iframe>
-        </div>
-        <script>
-          document.getElementById('applyRes').addEventListener('click', function() {
-            var w = document.getElementById('frameWidth').value;
-            var h = document.getElementById('frameHeight').value;
-            var frame = document.getElementById('testFrame');
-            frame.style.width = w + 'px';
-            frame.style.height = h + 'px';
-          });
-        <\/script>
-      `);
+        <iframe
+          id="testFrame"
+          src="${location.href}"
+          style="width:1280px; height:800px; border:1px solid #666; display:block; margin:auto; flex:1;"
+        ></iframe>
+      `;
+
+      // 3) Insere no topo do body
+      document.body.style.margin = '0';       // garante sem scroll no body principal
+      document.body.style.padding = '0';
+      document.body.style.overflow = 'hidden'; // só o iframe terá scroll
+      document.body.prepend(tester);
+
+      // 4) Lida com o clique do botão
+      tester.querySelector('#applyRes').addEventListener('click', () => {
+        const w = tester.querySelector('#frameWidth').value;
+        const h = tester.querySelector('#frameHeight').value;
+        const frame = tester.querySelector('#testFrame');
+        frame.style.width = w + 'px';
+        frame.style.height = h + 'px';
+      });
     }
   </script>
   
@@ -104,41 +118,7 @@
     } else {
       window.addEventListener("neb_OnsiteLoaded", showButtonsIfFormsAreAvailable);
     }
-  </script>
-
-  <!-- Painel de Resolução -->
-  <div style="position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border: 1px solid #ccc; z-index: 10000;">
-    <label>
-      Largura:
-      <input type="number" id="frameWidth" value="1280" style="width: 80px;" /> px
-    </label>
-    <label style="margin-left: 10px;">
-      Altura:
-      <input type="number" id="frameHeight" value="800" style="width: 80px;" /> px
-    </label>
-    <button id="applyRes" style="margin-left: 10px; padding: 4px 8px;">Aplicar</button>
-  </div>
-
-  <!-- IFrame de Teste -->
-  <div style="position: fixed; top: 80px; left: 20px; right: 20px; bottom: 20px; border: 1px solid #999;">
-    <iframe
-      id="testFrame"
-      src="https://tallison-digital-tests.github.io/cbemployerconnect.html"
-      style="width:1280px; height:800px; border: none; display: block; margin: 0 auto;"
-    ></iframe>
-  </div>
-
-  <script>
-    document.getElementById('applyRes').addEventListener('click', function() {
-      var w = document.getElementById('frameWidth').value;
-      var h = document.getElementById('frameHeight').value;
-      var frame = document.getElementById('testFrame');
-      frame.style.width = w + 'px';
-      frame.style.height = h + 'px';
-    });
-  </script>
-
-  
+  </script>  
   <app-root></app-root>
 </body>
 
