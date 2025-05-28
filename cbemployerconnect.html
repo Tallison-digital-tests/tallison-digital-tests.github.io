@@ -102,6 +102,14 @@
     <button class="feedback-btn" onclick="KAMPYLE_ONSITE_SDK.showForm(24937);">Always on Form</button>
   </div>
 
+  <!-- Esconde os botões na janela principal -->
+<script>
+  if (window.top === window) {
+    const btnBox = document.getElementById('feedbackButtonsContainer');
+    if (btnBox) btnBox.style.display = 'none';
+  }
+</script>
+
   <script>
     function showButtonsIfFormsAreAvailable() {
       // Tenta carregar os formulários para verificar disponibilidade
