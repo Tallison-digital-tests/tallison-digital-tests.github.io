@@ -38,69 +38,61 @@
       background-color: #333;
     }
   </style>
+
+  <style>
+    /* Se o <body> tiver a classe .top-window, esconde o container de botões */
+    body.top-window #feedbackButtonsContainer { display:none !important; }
+  </style>
+  
 </head>
 
 <body>
 
-<!-- ► PAINEL DE RESOLUÇÃO + LÓGICA DE VISIBILIDADE DOS BOTÕES ► -->
 <script>
-  if (window.top === window) {
-    // ——— Janela PRINCIPAL ———
-    // 1) Esconde o container de feedback na página pai
-    const feedbackBox = document.getElementById('feedbackButtonsContainer');
-    if (feedbackBox) feedbackBox.style.display = 'none';
+  document.body.classList.add(window.top === window ? 'top-window' : 'inside-iframe');
+</script>
+  
+<!-- ► PAINEL DE RESOLUÇÃO + LÓGICA DE VISIBILIDADE DOS BOTÕES ► -->
+<!-- ▼ PAINEL DE RESOLUÇÃO (só na janela principal) -->
+<script>
+if (document.body.classList.contains('top-window')) {
 
-    // 2) Cria o painel de resolução com iframe
-    const tester = document.createElement('div');
-    tester.style.cssText = `
-      position: fixed;
-      top: 10px; left: 10px;
-      right: 10px; bottom: 10px;
-      background: #fff;
-      border: 1px solid #999;
-      padding: 10px;
-      z-index: 9999;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-    `;
-    tester.innerHTML = `
-      <div style="margin-bottom:8px;">
-        <label>Largura:
-          <input type="number" id="frameWidth" value="1280" style="width:80px">
-        </label>
-        <label style="margin-left:12px;">Altura:
-          <input type="number" id="frameHeight" value="800" style="width:80px">
-        </label>
-        <button id="applyRes" style="margin-left:12px;padding:4px 8px">Aplicar</button>
-      </div>
-      <iframe
-        id="testFrame"
-        src="${location.href}"
-        style="flex:1; width:1280px; height:800px; border:1px solid #666; display:block; margin:auto;"
-      ></iframe>
-    `;
-    // Ajusta o body para só rolar dentro do iframe
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.overflow = 'hidden';
-    document.body.prepend(tester);
+  /* -- cria contêiner flutuante -- */
+  const tester = document.createElement('div');
+  tester.style.cssText = `
+    position: fixed;
+    top: 10px; left: 10px;
+    border: 1px solid #999;
+    background:#fff; padding:10px;
+    z-index:9999;
+  `;
 
-    // 3) Botão “Aplicar” redimensiona o iframe
-    tester.querySelector('#applyRes').addEventListener('click', () => {
-      const w = tester.querySelector('#frameWidth').value;
-      const h = tester.querySelector('#frameHeight').value;
-      const frame = tester.querySelector('#testFrame');
-      frame.style.width = w + 'px';
-      frame.style.height = h + 'px';
-    });
+  /* -- HTML interno -- */
+  tester.innerHTML = `
+    <div style="margin-bottom:8px;">
+      <label>Largura:<input id="frameW" type="number" value="1280" style="width:80px"></label>
+      <label style="margin-left:12px;">Altura:<input id="frameH" type="number" value="800" style="width:80px"></label>
+      <button id="applyWH" style="margin-left:12px;">Aplicar</button>
+    </div>
+    <iframe id="testFrame"
+      src="${location.href}"
+      style="width:1280px;height:800px;border:1px solid #666;display:block;">
+    </iframe>
+  `;
 
-  } else {
-    // ——— Dentro do IFRAME ———
-    // Reexibe o container original de feedback
-    const feedbackBox = document.getElementById('feedbackButtonsContainer');
-    if (feedbackBox) feedbackBox.style.display = 'flex';
-  }
+  /* -- insere no topo do <body> -- */
+  document.body.prepend(tester);
+  document.body.style.overflow = 'hidden';   // só rola dentro do iframe
+
+  /* -- Aplica novo tamanho ao clicar -- */
+  tester.querySelector('#applyWH').addEventListener('click', () => {
+    const w = tester.querySelector('#frameW').value;
+    const h = tester.querySelector('#frameH').value;
+    const fr = tester.querySelector('#testFrame');
+    fr.style.width  = w + 'px';
+    fr.style.height = h + 'px';
+  });
+}
 </script>
   
   <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/216529/onsite/embed.js" async></script>
