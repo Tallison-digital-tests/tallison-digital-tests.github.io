@@ -96,13 +96,13 @@
   
   <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/216529/onsite/embed.js" async></script>
 
-  <!-- Aqui ficam os botões -->
-  <div id="feedbackButtonsContainer" style="display: none;">
-    <button class="feedback-btn" onclick="KAMPYLE_ONSITE_SDK.showForm(24935);">Log Off Form</button>
-    <button class="feedback-btn" onclick="KAMPYLE_ONSITE_SDK.showForm(24937);">Always on Form</button>
-  </div>
+<!-- Botões de feedback -->
+<div id="feedbackButtonsContainer" style="display:flex;">
+  <button class="feedback-btn" onclick="KAMPYLE_ONSITE_SDK.showForm(24935);">Log Off Form</button>
+  <button class="feedback-btn" onclick="KAMPYLE_ONSITE_SDK.showForm(24937);">Always on Form</button>
+</div>
 
-  <!-- Esconde os botões na janela principal -->
+<!-- Esconde os botões na janela principal -->
 <script>
   if (window.top === window) {
     const btnBox = document.getElementById('feedbackButtonsContainer');
