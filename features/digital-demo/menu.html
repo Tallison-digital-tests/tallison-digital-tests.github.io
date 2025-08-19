@@ -26,7 +26,7 @@
 <body>
     <div class="header">
         <div class="container">
-            <a href="#" class="navbar-brand scroll-top">Behaviour</a>
+            <a href="#" class="navbar-brand scroll-top">Intercept</a>
             <nav class="navbar navbar-inverse" role="navigation">
                 <div class="navbar-header">
                     <button type="button" id="nav-toggle" class="navbar-toggle" data-toggle="collapse" data-target="#main-nav">
@@ -65,8 +65,52 @@
         </div>
     </section>
 
+    <script>
+  // Define o idioma padrão da página
+  document.documentElement.lang = "es-ES";
+  var lang = "es-ES";
+  console.log("Idioma configurado para:", document.documentElement.lang);
 
+  var medallia_page = "ExpressServices";
+  var medallia_digital_channel = "Digital";
+  var medallia_trigger;
+  var PhoneContact = "5541999592496";
+  var Premiumpolicy = "Premiumpolicy";
+  var SponsorCode =  "SponsorCode";
+  var ProductCode =  "ProductCode";
+  var PolicyDateEnd = "19/02/2025 15:43:45:00:02";
+  var PolicyDateStart = "19/02/2025 15:43:45:00:02";
+  var LOBCode = "LOBCode";
+  var CustomerNumber = "5541999592495";
+  var Portalinteraction = "Portalinteraction";
+  var PolicyStatus = "PolicyStatus";
+  var ProductName = "ProductName";
+  var PolicyNumberGbl = "123456";
+  var SponsorName = "SponsorName";
+  var EmailContact = "EmailContact";
+  var LastNameUser = "LastNameUser";
+  var NameUser = "NameUser";
+  var NumberClaim = "987654";
 
+  function setMedalliaTrigger() {
+    window.medallia_trigger = true; // Popula a variável como true (caso necessário)
+    console.log("medallia_trigger foi atualizado para:", window.medallia_trigger);
+
+    // Comando para atualizar a visualização no Medallia Digital
+    if (typeof KAMPYLE_ONSITE_SDK !== 'undefined') {
+      KAMPYLE_ONSITE_SDK.updatePageView(true, { language: "es-ES" });
+      console.log("KAMPYLE_ONSITE_SDK.updatePageView(true) chamado com sucesso.");
+    } else {
+      console.warn("KAMPYLE_ONSITE_SDK não está definido.");
+    }
+  }
+</script>
+
+<div class="container text-center mt-5">
+  <p><button class="btn btn-primary" onclick="setMedalliaTrigger()">Download PDF</button></p>
+</div>
+
+    
     <section class="breakfast-menu">
         <div class="container">
             <div class="row">
@@ -298,6 +342,7 @@
 </body>
 
 </html>
+
 
 
 
