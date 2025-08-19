@@ -154,22 +154,20 @@ async function sendFeedback(_, accessToken, payload) {
   function hideModal() { modal.style.display = 'none'; formEl.innerHTML=''; formMsgEl.textContent=''; }
 
   // === API calls ===
-  async function getAccessToken(apiBase, propertyToken) {
-    const url = apiBase.replace(/\/$/, '') + '/accessToken';
-    // Payload mais comum para Anywhere: { token: "<PROPERTY_TOKEN>" }
-    // (Algumas instâncias podem exigir Authorization header. Ajuste se necessário.)
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: propertyToken })
-    });
-    if (!res.ok) throw new Error(`accessToken falhou: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    // Suporte a chaves diferentes (ex.: accessToken | token | access_token)
-    const at = data.accessToken || data.token || data.access_token;
-    if (!at) throw new Error('Resposta sem accessToken. Veja o console:\n' + JSON.stringify(data));
-    return at;
-  }
+
+async function getAccessToken(_, propertyToken) {
+  // Se já vier com "Bearer " no início, não duplica
+  const auth = propertyToken.startsWith('Bearer ') ? propertyToken : `Bearer ${propertyToken}`;
+
+  const res = await fetch(`${proxyBase}/accessToken`, {
+    method: 'POST',
+    headers: { 'Authorization': auth }
+  });
+
+  if (!res.ok) throw new Error(`accessToken falhou: ${res.status}`);
+  const data = await res.json();
+  return data.accessToken || data.token || data.access_token;
+}
 
   async function getConfiguration(apiBase, accessToken, formId) {
     const url = apiBase.replace(/\/$/, '') + `/configuration?formId=${encodeURIComponent(formId)}`;
@@ -485,6 +483,7 @@ async function sendFeedback(_, accessToken, payload) {
 </body>
 
 </html>
+
 
 
 
