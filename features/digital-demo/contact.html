@@ -68,157 +68,183 @@
     <section class="Digital Anywhere — Demo">
         <div class="container">
 <br><br><br><br>
-  <div class="row">
-    <label for="propertyToken"><strong>Property token</strong></label>
-    <input id="propertyToken" type="password" placeholder="cole aqui seu token (NÃO use em produção!)" />
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+    <label style="min-width:180px" for="da-property-token"><strong>Property token</strong></label>
+    <input id="da-property-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
   </div>
 
-  <div class="row">
-    <label for="apiBase"><strong>API Base</strong></label>
-    <input id="apiBase" type="text" value="https://m-an-p.vercel.app/api"/>
-    <span class="badge">publicAPI/v2</span>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+    <label style="min-width:180px" for="da-proxy"><strong>Proxy (Vercel)</strong></label>
+    <input id="da-proxy" type="text" value="https://m-an-p.vercel.app/api" style="padding:8px;min-width:360px" />
+    <span style="font-size:12px;background:#eef;border-radius:999px;padding:2px 8px">/api (minúsculo)</span>
   </div>
 
-  <div class="row">
-    <label for="formId"><strong>Form ID</strong></label>
-    <input id="formId" type="number" value="25771" />
+  <div style="margin:12px 0">
+    <label for="da-form-id"><strong>Form alvo (para renderizar)</strong></label><br/>
+    <input id="da-form-id" type="number" value="25771" style="padding:8px;min-width:180px" />
   </div>
 
-  <button id="startBtn">Abrir Digital Anywhere</button>
-
-  <h3>Log</h3>
-  <div id="log"></div>
-
-  <!-- Modal simples para renderizar o formulário -->
-  <div id="formModal" role="dialog" aria-modal="true">
-    <div id="formCard">
-      <h2 id="formTitle">Form</h2>
-      <form id="dynamicForm"></form>
-      <div class="actions">
-        <button id="submitBtn" type="button">Enviar</button>
-        <button id="closeBtn" type="button">Fechar</button>
-      </div>
-      <div id="formMsg" class="muted"></div>
+  <div style="margin:12px 0">
+    <label for="da-config-json"><strong>Configuration payload (JSON)</strong></label>
+    <textarea id="da-config-json" style="width:100%;min-height:200px;padding:10px;font-family:ui-monospace,Consolas,monospace">
+{
+  "channel": "anywhere",
+  "event": "manual",
+  "locale": "pt-BR",
+  "page": { "url": "<?URL?>" },
+  "variables": {
+    "example_key": "example_value"
+  }
+}
+    </textarea>
+    <div style="color:#666;font-size:12px;margin-top:6px">
+      Dica: ajuste o payload conforme sua instância (ex.: <code>channel</code>, <code>event</code>, <code>variables</code>, etc.). A chamada é <strong>POST /configuration</strong> sem query de form.
     </div>
   </div>
 
+  <button id="da-start" style="padding:10px 14px;cursor:pointer">Abrir Digital Anywhere</button>
 
-            
+  <h3 style="margin-top:18px">Log</h3>
+  <pre id="da-log" style="white-space:pre-wrap;background:#f6f8fa;padding:12px;border-radius:8px;font-size:12px"></pre>
+
+  <!-- Modal simples -->
+  <div id="da-modal" role="dialog" aria-modal="true"
+       style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px">
+    <div id="da-card" style="background:#fff;max-width:720px;width:100%;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:20px;max-height:85vh;overflow:auto">
+      <h3 id="da-form-title">Form</h3>
+      <form id="da-form"></form>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button id="da-send" type="button" style="padding:10px 14px;cursor:pointer">Enviar</button>
+        <button id="da-close" type="button" style="padding:10px 14px;cursor:pointer">Fechar</button>
+      </div>
+      <div id="da-msg" style="color:#666;font-size:12px;margin-top:8px"></div>
+    </div>
+  </div>
+</section>
+
 <script>
 (function(){
-  const logEl = document.getElementById('log');
-  const modal = document.getElementById('formModal');
-  const formEl = document.getElementById('dynamicForm');
-  const formTitleEl = document.getElementById('formTitle');
-  const formMsgEl = document.getElementById('formMsg');
+  // ====== helpers UI ======
+  const $ = (id) => document.getElementById(id);
+  const logEl = $('da-log');
+  const modal = $('da-modal');
+  const formEl = $('da-form');
+  const formTitleEl = $('da-form-title');
+  const msgEl = $('da-msg');
 
-// use o domínio do seu projeto no Vercel
-const proxyBase = 'https://m-an-p.vercel.app/api';
-
-// troca de token
-async function getAccessToken(_, propertyToken) {
-  const res = await fetch(`${proxyBase}/accessToken`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token: propertyToken })
-  });
-  if (!res.ok) throw new Error(`accessToken falhou: ${res.status}`);
-  const data = await res.json();
-  return data.accessToken || data.token || data.access_token;
-}
-
-// configuration
-async function getConfiguration(_, accessToken, formId) {
-  const res = await fetch(`${proxyBase}/configuration?formId=${encodeURIComponent(formId)}&accessToken=${encodeURIComponent(accessToken)}`);
-  if (!res.ok) throw new Error(`configuration falhou: ${res.status}`);
-  return res.json();
-}
-
-// feedback
-async function sendFeedback(_, accessToken, payload) {
-  const res = await fetch(`${proxyBase}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken, ...payload })
-  });
-  if (!res.ok) throw new Error(`feedback falhou: ${res.status}`);
-  return res.json().catch(() => ({}));
-}
-    
   function log(msg, kind) {
-    const prefix = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
-    logEl.textContent += prefix + (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)) + '\n';
+    const p = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
+    logEl.textContent += p + (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)) + '\n';
+  }
+  const showModal = () => modal.style.display = 'flex';
+  const hideModal = () => { modal.style.display='none'; formEl.innerHTML=''; msgEl.textContent=''; };
+
+  // ====== header exigido no /accessToken ======
+  function asBearerUnderscore(token) {
+    const t = String(token || '').trim();
+    return /^bearer[_\s]/i.test(t) ? t : `bearer_${t}`;
   }
 
-  function showModal() { modal.style.display = 'flex'; }
-  function hideModal() { modal.style.display = 'none'; formEl.innerHTML=''; formMsgEl.textContent=''; }
-
-  // === API calls ===
-
-async function getAccessToken(_, propertyToken) {
-  // Se já vier com "Bearer " no início, não duplica
-  const auth = propertyToken.startsWith('Bearer ') ? propertyToken : `Bearer_${propertyToken}`;
-
-  const res = await fetch(`${proxyBase}/accessToken`, {
-    method: 'POST',
-    headers: { 'Authorization': auth }
-  });
-
-  if (!res.ok) throw new Error(`accessToken falhou: ${res.status}`);
-  const data = await res.json();
-  return data.accessToken || data.token || data.access_token;
-}
-
-  async function getConfiguration(apiBase, accessToken, formId) {
-    const url = apiBase.replace(/\/$/, '') + `/configuration?formId=${encodeURIComponent(formId)}`;
-    const res = await fetch(url, {
-      headers: { 'Authorization': `Bearer_${accessToken}` }
-    });
-    if (!res.ok) throw new Error(`configuration falhou: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    return data;
-  }
-
-  async function sendFeedback(apiBase, accessToken, payload) {
-    const url = apiBase.replace(/\/$/, '') + '/feedback';
-    const res = await fetch(url, {
+  // ====== chamadas ao PROXY (Vercel) ======
+  async function getAccessToken(proxyBase, propertyToken) {
+    const res = await fetch(`${proxyBase}/accessToken`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer_${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
+      headers: { Authorization: asBearerUnderscore(propertyToken) }
     });
     if (!res.ok) {
-      const errText = await res.text().catch(()=> '');
-      throw new Error(`feedback falhou: ${res.status} ${res.statusText}\n${errText}`);
+      const t = await res.text().catch(()=> '');
+      throw new Error(`accessToken falhou: ${res.status} ${t}`);
+    }
+    const data = await res.json().catch(() => ({}));
+    return data.accessToken || data.token || data.access_token || data.raw || '';
+  }
+
+  // Agora /configuration é POST sem querystring; body = { accessToken, payload }
+  async function postConfiguration(proxyBase, accessToken, payload) {
+    const res = await fetch(`${proxyBase}/configuration`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken, payload })
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(()=> '');
+      throw new Error(`configuration falhou: ${res.status} ${t}`);
+    }
+    return res.json();
+  }
+
+  // /feedback permanece POST
+  async function sendFeedback(proxyBase, accessToken, payload) {
+    const res = await fetch(`${proxyBase}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken, ...payload })
+    });
+    if (!res.ok) {
+      const t = await res.text().catch(()=> '');
+      throw new Error(`feedback falhou: ${res.status} ${t}`);
     }
     return res.json().catch(() => ({}));
   }
 
-  // === Form rendering (genérico) ===
-  function normalizeFields(config) {
-    // Tenta localizar a lista de campos nos formatos mais comuns
-    // Exemplos possíveis: config.form.fields, config.fields, config.formDefinition.fields
-    const form = config.form || config.formDefinition || config;
-    const title = form.name || form.title || `Form ${form.id || ''}`;
-    const fields = form.fields || [];
-    return { title, fields, raw: config };
+  // ====== busca recursiva do form alvo (por id) ======
+  function findFormNode(root, targetId) {
+    const seen = new WeakSet();
+    function walk(node) {
+      if (!node || typeof node !== 'object' || seen.has(node)) return null;
+      seen.add(node);
+
+      // match direto por id/formId
+      if ((node.id == targetId || node.formId == targetId) && (node.fields || node.form?.fields || node.formDefinition?.fields)) {
+        return node;
+      }
+      // se for um objeto com 'forms'/'surveys'/'experiences', tenta dentro
+      const keys = Object.keys(node);
+      for (const k of keys) {
+        const v = node[k];
+        if (v && typeof v === 'object') {
+          const found = walk(v);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+    return walk(root);
   }
 
-  function createInputForField(field) {
-    // Campos típicos: text, textarea, select, number, rating, radio, checkbox, email, phone...
-    const wrap = document.createElement('div'); wrap.className = 'row';
+  function extractFields(node) {
+    if (!node) return { title: '', fields: [] };
+    const title = node.name || node.title || node.form?.name || node.form?.title || `Form ${node.id || node.formId || ''}`;
+    const fields = node.fields || node.form?.fields || node.formDefinition?.fields || [];
+    return { title, fields };
+  }
+
+  function buildInput(field) {
+    const wrap = document.createElement('div');
+    wrap.style.display = 'flex';
+    wrap.style.gap = '8px';
+    wrap.style.alignItems = 'center';
+    wrap.style.margin = '12px 0';
+
     const label = document.createElement('label');
     const id = `f_${field.id || field.name || Math.random().toString(36).slice(2)}`;
     label.setAttribute('for', id);
     label.textContent = field.label || field.name || field.id || 'Campo';
+    label.style.minWidth = '180px';
 
     let input;
     const type = (field.type || '').toLowerCase();
 
-    if (type.includes('text') && !type.includes('multi')) {
-      input = document.createElement('input'); input.type = 'text';
+    if (type.includes('select') || Array.isArray(field.options)) {
+      input = document.createElement('select');
+      const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —';
+      input.appendChild(ph);
+      (field.options || []).forEach(opt => {
+        const o = document.createElement('option');
+        o.value = (opt.value ?? opt.id ?? opt);
+        o.textContent = (opt.label ?? opt.name ?? String(opt));
+        input.appendChild(o);
+      });
     } else if (type.includes('multi') || type.includes('textarea')) {
       input = document.createElement('textarea'); input.rows = 3;
     } else if (type.includes('email')) {
@@ -227,26 +253,18 @@ async function getAccessToken(_, propertyToken) {
       input = document.createElement('input'); input.type = 'tel';
     } else if (type.includes('number') || type.includes('rating')) {
       input = document.createElement('input'); input.type = 'number';
-    } else if (type.includes('select') || Array.isArray(field.options)) {
-      input = document.createElement('select');
-      const opts = field.options || [];
-      const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —';
-      input.appendChild(ph);
-      opts.forEach(opt => {
-        const o = document.createElement('option');
-        o.value = (opt.value ?? opt.id ?? opt); o.textContent = (opt.label ?? opt.name ?? String(opt));
-        input.appendChild(o);
-      });
     } else if (type.includes('boolean') || type.includes('checkbox')) {
       input = document.createElement('input'); input.type = 'checkbox';
     } else {
-      // fallback: text
       input = document.createElement('input'); input.type = 'text';
     }
 
     input.id = id;
     input.dataset.fieldId = field.id || field.name || id;
     if (field.required) input.required = true;
+
+    input.style.padding = '8px';
+    input.style.minWidth = '260px';
 
     wrap.appendChild(label);
     wrap.appendChild(input);
@@ -258,87 +276,85 @@ async function getAccessToken(_, propertyToken) {
     const answers = [];
     controls.forEach(ctrl => {
       const fieldId = ctrl.dataset.fieldId;
-      let value;
-      if (ctrl.type === 'checkbox') value = ctrl.checked;
-      else value = ctrl.value;
-
+      const value = (ctrl.type === 'checkbox') ? ctrl.checked : ctrl.value;
       answers.push({ fieldId, value });
     });
     return answers;
   }
 
-  // === Wire UI ===
-  document.getElementById('startBtn').addEventListener('click', async () => {
+  // ====== fluxo ======
+  $('da-start').addEventListener('click', async () => {
     log('Iniciando fluxo...');
-    const apiBase = document.getElementById('apiBase').value.trim();
-    const propertyToken = document.getElementById('propertyToken').value.trim();
-    const formId = document.getElementById('formId').value.trim();
+    const proxyBase = $('da-proxy').value.trim();
+    const propertyToken = $('da-property-token').value.trim();
+    const targetFormId = $('da-form-id').value.trim();
 
-    if (!apiBase || !propertyToken || !formId) {
-      log('Preencha API Base, Property token e Form ID.', 'err');
+    let payloadText = $('da-config-json').value.replace('<?URL?>', location.href);
+    let payload;
+    try { payload = JSON.parse(payloadText); }
+    catch(e) { log('JSON do payload inválido.', 'err'); return; }
+
+    if (!proxyBase || !propertyToken) {
+      log('Preencha Proxy e Property token.', 'err');
       return;
     }
 
     try {
       log('Trocando property token por accessToken...');
-      const accessToken = await getAccessToken(apiBase, propertyToken);
+      const accessToken = await getAccessToken(proxyBase, propertyToken);
       log('Access token OK.', 'ok');
 
-      log(`Buscando configuration do form ${formId}...`);
-      const conf = await getConfiguration(apiBase, accessToken, formId);
+      log('Chamando POST /configuration com payload...');
+      const conf = await postConfiguration(proxyBase, accessToken, payload);
       log(conf);
 
-      const { title, fields } = normalizeFields(conf);
-      formTitleEl.textContent = title || `Form ${formId}`;
-
-      // Monta o form dinâmico
-      formEl.innerHTML = '';
-      if (!fields || !fields.length) {
-        const div = document.createElement('div');
-        div.className = 'error';
-        div.textContent = 'Nenhum campo encontrado na configuração. Veja o LOG acima para inspecionar a resposta.';
-        formEl.appendChild(div);
-      } else {
-        fields.forEach(f => formEl.appendChild(createInputForField(f)));
+      // acha o form alvo na resposta "normal"
+      const node = findFormNode(conf, targetFormId);
+      if (!node) {
+        log(`Form ${targetFormId} não encontrado na resposta do configuration.`, 'err');
+        return;
       }
 
-      // Abre modal
+      const { title, fields } = extractFields(node);
+      formTitleEl.textContent = title || `Form ${targetFormId}`;
+      formEl.innerHTML = '';
+
+      if (!fields.length) {
+        const warn = document.createElement('div');
+        warn.style.color = '#b00020';
+        warn.textContent = 'Nenhum campo encontrado nesse form. Veja o LOG acima para inspecionar a resposta.';
+        formEl.appendChild(warn);
+      } else {
+        fields.forEach(f => formEl.appendChild(buildInput(f)));
+      }
+
       showModal();
 
-      // Submit
-      document.getElementById('submitBtn').onclick = async () => {
-        formMsgEl.textContent = 'Enviando...';
+      $('da-send').onclick = async () => {
+        msgEl.textContent = 'Enviando...';
         try {
-          const answers = collectAnswers();
-          const payload = {
-            formId: Number(formId),
-            // Algumas instâncias esperam "responses", outras "answers".
-            responses: answers,
-            // metadata útil — ajuste conforme necessidade
+          const responses = collectAnswers();
+          const out = await sendFeedback(proxyBase, accessToken, {
+            formId: Number(targetFormId),
+            responses,
             channel: 'anywhere',
-            locale: 'pt-BR'
-          };
-          log('Payload de feedback:'); log(payload);
-
-          const res = await sendFeedback(apiBase, accessToken, payload);
-          formMsgEl.textContent = '';
-          log('Feedback enviado com sucesso!', 'ok');
-          log(res);
-          formMsgEl.innerHTML = '<span class="success">Feedback enviado com sucesso!</span>';
+            locale: payload.locale || 'pt-BR'
+          });
+          log('Feedback enviado.', 'ok');
+          log(out);
+          msgEl.style.color = '#0a7a2f';
+          msgEl.textContent = 'Feedback enviado com sucesso!';
         } catch (e) {
-          formMsgEl.innerHTML = '<span class="error">Falha ao enviar feedback. Veja o log.</span>';
+          msgEl.style.color = '#b00020';
+          msgEl.textContent = 'Falha ao enviar feedback — veja o log.';
           log(e.message || e, 'err');
         }
       };
 
-      // Close
-      document.getElementById('closeBtn').onclick = () => hideModal();
+      $('da-close').onclick = () => hideModal();
 
     } catch (e) {
       log(e.message || e, 'err');
-      if ((e.message || '').includes('Failed to fetch')) {
-        log('Possível CORS: rode via um proxy server-side.', 'err');
-      }
     }
   });
 })();
@@ -483,6 +499,7 @@ async function getAccessToken(_, propertyToken) {
 </body>
 
 </html>
+
 
 
 
