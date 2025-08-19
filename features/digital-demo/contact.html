@@ -65,8 +65,259 @@
         </div>
     </section>
 
+    <section class="Digital Anywhere — Demo">
+        <div class="container">
 
+  <div class="row">
+    <label for="propertyToken"><strong>Property token</strong></label>
+    <input id="propertyToken" type="password" placeholder="cole aqui seu token (NÃO use em produção!)" />
+  </div>
 
+  <div class="row">
+    <label for="apiBase"><strong>API Base</strong></label>
+    <input id="apiBase" type="text" value="https://bradesco.md-apis.medallia.com/publicAPI/v2" />
+    <span class="badge">publicAPI/v2</span>
+  </div>
+
+  <div class="row">
+    <label for="formId"><strong>Form ID</strong></label>
+    <input id="formId" type="number" value="25771" />
+  </div>
+
+  <button id="startBtn">Abrir Digital Anywhere</button>
+
+  <p class="muted">
+    Dica: se aparecer <em>TypeError: Failed to fetch</em>, provavelmente é <strong>CORS</strong>. Nesse caso, use um micro-proxy (posso te enviar um snippet de Express/Vercel).
+  </p>
+
+  <h3>Log</h3>
+  <div id="log"></div>
+
+  <!-- Modal simples para renderizar o formulário -->
+  <div id="formModal" role="dialog" aria-modal="true">
+    <div id="formCard">
+      <h2 id="formTitle">Form</h2>
+      <form id="dynamicForm"></form>
+      <div class="actions">
+        <button id="submitBtn" type="button">Enviar</button>
+        <button id="closeBtn" type="button">Fechar</button>
+      </div>
+      <div id="formMsg" class="muted"></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const logEl = document.getElementById('log');
+  const modal = document.getElementById('formModal');
+  const formEl = document.getElementById('dynamicForm');
+  const formTitleEl = document.getElementById('formTitle');
+  const formMsgEl = document.getElementById('formMsg');
+
+  function log(msg, kind) {
+    const prefix = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
+    logEl.textContent += prefix + (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)) + '\n';
+  }
+
+  function showModal() { modal.style.display = 'flex'; }
+  function hideModal() { modal.style.display = 'none'; formEl.innerHTML=''; formMsgEl.textContent=''; }
+
+  // === API calls ===
+  async function getAccessToken(apiBase, propertyToken) {
+    const url = apiBase.replace(/\/$/, '') + '/accessToken';
+    // Payload mais comum para Anywhere: { token: "<PROPERTY_TOKEN>" }
+    // (Algumas instâncias podem exigir Authorization header. Ajuste se necessário.)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: propertyToken })
+    });
+    if (!res.ok) throw new Error(`accessToken falhou: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    // Suporte a chaves diferentes (ex.: accessToken | token | access_token)
+    const at = data.accessToken || data.token || data.access_token;
+    if (!at) throw new Error('Resposta sem accessToken. Veja o console:\n' + JSON.stringify(data));
+    return at;
+  }
+
+  async function getConfiguration(apiBase, accessToken, formId) {
+    const url = apiBase.replace(/\/$/, '') + `/configuration?formId=${encodeURIComponent(formId)}`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    if (!res.ok) throw new Error(`configuration falhou: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    return data;
+  }
+
+  async function sendFeedback(apiBase, accessToken, payload) {
+    const url = apiBase.replace(/\/$/, '') + '/feedback';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(()=> '');
+      throw new Error(`feedback falhou: ${res.status} ${res.statusText}\n${errText}`);
+    }
+    return res.json().catch(() => ({}));
+  }
+
+  // === Form rendering (genérico) ===
+  function normalizeFields(config) {
+    // Tenta localizar a lista de campos nos formatos mais comuns
+    // Exemplos possíveis: config.form.fields, config.fields, config.formDefinition.fields
+    const form = config.form || config.formDefinition || config;
+    const title = form.name || form.title || `Form ${form.id || ''}`;
+    const fields = form.fields || [];
+    return { title, fields, raw: config };
+  }
+
+  function createInputForField(field) {
+    // Campos típicos: text, textarea, select, number, rating, radio, checkbox, email, phone...
+    const wrap = document.createElement('div'); wrap.className = 'row';
+    const label = document.createElement('label');
+    const id = `f_${field.id || field.name || Math.random().toString(36).slice(2)}`;
+    label.setAttribute('for', id);
+    label.textContent = field.label || field.name || field.id || 'Campo';
+
+    let input;
+    const type = (field.type || '').toLowerCase();
+
+    if (type.includes('text') && !type.includes('multi')) {
+      input = document.createElement('input'); input.type = 'text';
+    } else if (type.includes('multi') || type.includes('textarea')) {
+      input = document.createElement('textarea'); input.rows = 3;
+    } else if (type.includes('email')) {
+      input = document.createElement('input'); input.type = 'email';
+    } else if (type.includes('phone')) {
+      input = document.createElement('input'); input.type = 'tel';
+    } else if (type.includes('number') || type.includes('rating')) {
+      input = document.createElement('input'); input.type = 'number';
+    } else if (type.includes('select') || Array.isArray(field.options)) {
+      input = document.createElement('select');
+      const opts = field.options || [];
+      const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —';
+      input.appendChild(ph);
+      opts.forEach(opt => {
+        const o = document.createElement('option');
+        o.value = (opt.value ?? opt.id ?? opt); o.textContent = (opt.label ?? opt.name ?? String(opt));
+        input.appendChild(o);
+      });
+    } else if (type.includes('boolean') || type.includes('checkbox')) {
+      input = document.createElement('input'); input.type = 'checkbox';
+    } else {
+      // fallback: text
+      input = document.createElement('input'); input.type = 'text';
+    }
+
+    input.id = id;
+    input.dataset.fieldId = field.id || field.name || id;
+    if (field.required) input.required = true;
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function collectAnswers() {
+    const controls = formEl.querySelectorAll('[data-field-id]');
+    const answers = [];
+    controls.forEach(ctrl => {
+      const fieldId = ctrl.dataset.fieldId;
+      let value;
+      if (ctrl.type === 'checkbox') value = ctrl.checked;
+      else value = ctrl.value;
+
+      answers.push({ fieldId, value });
+    });
+    return answers;
+  }
+
+  // === Wire UI ===
+  document.getElementById('startBtn').addEventListener('click', async () => {
+    log('Iniciando fluxo...');
+    const apiBase = document.getElementById('apiBase').value.trim();
+    const propertyToken = document.getElementById('propertyToken').value.trim();
+    const formId = document.getElementById('formId').value.trim();
+
+    if (!apiBase || !propertyToken || !formId) {
+      log('Preencha API Base, Property token e Form ID.', 'err');
+      return;
+    }
+
+    try {
+      log('Trocando property token por accessToken...');
+      const accessToken = await getAccessToken(apiBase, propertyToken);
+      log('Access token OK.', 'ok');
+
+      log(`Buscando configuration do form ${formId}...`);
+      const conf = await getConfiguration(apiBase, accessToken, formId);
+      log(conf);
+
+      const { title, fields } = normalizeFields(conf);
+      formTitleEl.textContent = title || `Form ${formId}`;
+
+      // Monta o form dinâmico
+      formEl.innerHTML = '';
+      if (!fields || !fields.length) {
+        const div = document.createElement('div');
+        div.className = 'error';
+        div.textContent = 'Nenhum campo encontrado na configuração. Veja o LOG acima para inspecionar a resposta.';
+        formEl.appendChild(div);
+      } else {
+        fields.forEach(f => formEl.appendChild(createInputForField(f)));
+      }
+
+      // Abre modal
+      showModal();
+
+      // Submit
+      document.getElementById('submitBtn').onclick = async () => {
+        formMsgEl.textContent = 'Enviando...';
+        try {
+          const answers = collectAnswers();
+          const payload = {
+            formId: Number(formId),
+            // Algumas instâncias esperam "responses", outras "answers".
+            responses: answers,
+            // metadata útil — ajuste conforme necessidade
+            channel: 'anywhere',
+            locale: 'pt-BR'
+          };
+          log('Payload de feedback:'); log(payload);
+
+          const res = await sendFeedback(apiBase, accessToken, payload);
+          formMsgEl.textContent = '';
+          log('Feedback enviado com sucesso!', 'ok');
+          log(res);
+          formMsgEl.innerHTML = '<span class="success">Feedback enviado com sucesso!</span>';
+        } catch (e) {
+          formMsgEl.innerHTML = '<span class="error">Falha ao enviar feedback. Veja o log.</span>';
+          log(e.message || e, 'err');
+        }
+      };
+
+      // Close
+      document.getElementById('closeBtn').onclick = () => hideModal();
+
+    } catch (e) {
+      log(e.message || e, 'err');
+      if ((e.message || '').includes('Failed to fetch')) {
+        log('Possível CORS: rode via um proxy server-side.', 'err');
+      }
+    }
+  });
+})();
+</script>
+        </div>
+    </section>
+
+    
     <section class="contact-us">
         <div class="container">
             <div class="row">
@@ -203,5 +454,6 @@
 </body>
 
 </html>
+
 
 
