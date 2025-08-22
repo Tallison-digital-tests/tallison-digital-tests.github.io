@@ -356,51 +356,54 @@
                                                       }
                                                     
                                                       // monta payload do feedback
-                                                      function collectFeedbackPayload(formNode, resolvedCustomParams) {
-                                                        const pages = [];
-                                                        const groups = {}; // pageIndex -> array de componentes
-                                                    
-                                                        [...formEl.querySelectorAll('div[data-page-index]')].forEach(wrap => {
-                                                          const pIdx = Number(wrap.dataset.pageIndex || 0);
-                                                          const compId = Number(wrap.dataset.compId);
-                                                          const unique_name = wrap.dataset.uniqueName || '';
-                                                          const type = wrap.dataset.type || '';
-                                                          const typeLower = type.toLowerCase();
-                                                    
-                                                          let value = null;
-                                                          if (typeLower === 'radio') {
-                                                            const checked = wrap.querySelector('input[type="radio"]:checked');
-                                                            value = checked ? checked.value : '';
-                                                          } else if (typeLower === 'checkbox') {
-                                                            value = [...wrap.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
-                                                          } else if (typeLower === 'grading1to10' || typeLower === 'grading1to7' || typeLower === 'nps') {
-                                                            const hidden = wrap.querySelector('.rating-hidden');
-                                                            value = hidden && hidden.value !== '' ? Number(hidden.value) : null;
-                                                          } else {
-                                                            const inp = wrap.querySelector('input, select, textarea');
-                                                            value = inp ? inp.value : '';
-                                                            if (typeLower.includes('number')) value = value === '' ? null : Number(value);
-                                                          }
-                                                    
-                                                          const entry = { id: compId, unique_name, type, value };
-                                                          (groups[pIdx] ||= []).push(entry);
-                                                        });
-                                                    
-                                                        const formJsonPages = (formNode.formJson && formNode.formJson.pages) || [];
-                                                        Object.keys(groups).forEach(k => {
-                                                          const idx = Number(k);
-                                                          const name = formJsonPages[idx]?.name || `Page ${idx+1}`;
-                                                          pages.push({ name, dynamicData: groups[idx] });
-                                                        });
-                                                    
-                                                        // customParams resolvidos automaticamente (não aparecem na UI)
-                                                        const customParams = resolvedCustomParams || [];
-                                                    
-                                                        return {
-                                                          formId: String(formNode.formId || formNode.id || formNode.formJson?.id || ''),
-                                                          dynamicData: { customParams, pages }
-                                                        };
-                                                      }
+                                                        // Substitua a função collectFeedbackPayload existente por esta versão:
+                                                        function collectFeedbackPayload(formNode, resolvedCustomParams) {
+                                                          // Agrupa os componentes preenchidos por pageIndex
+                                                          const groups = {}; // pageIndex -> array de componentes preenchidos
+                                                        
+                                                          [...formEl.querySelectorAll('div[data-page-index]')].forEach(wrap => {
+                                                            const pIdx = Number(wrap.dataset.pageIndex || 0);
+                                                            const compId = Number(wrap.dataset.compId);
+                                                            const unique_name = wrap.dataset.uniqueName || '';
+                                                            const type = wrap.dataset.type || '';
+                                                            const typeLower = type.toLowerCase();
+                                                        
+                                                            let value = null;
+                                                        
+                                                            if (typeLower === 'radio') {
+                                                              const checked = wrap.querySelector('input[type="radio"]:checked');
+                                                              value = checked ? checked.value : '';
+                                                            } else if (typeLower === 'checkbox') {
+                                                              value = [...wrap.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
+                                                            } else if (typeLower === 'grading1to10' || typeLower === 'grading1to7' || typeLower === 'nps') {
+                                                              const hidden = wrap.querySelector('.rating-hidden');
+                                                              value = hidden && hidden.value !== '' ? Number(hidden.value) : null;
+                                                            } else {
+                                                              const inp = wrap.querySelector('input, select, textarea');
+                                                              value = inp ? inp.value : '';
+                                                              // se for number-like, manda número (ou null)
+                                                              if (/number|rating|grading/.test(typeLower)) {
+                                                                value = value === '' ? null : Number(value);
+                                                              }
+                                                            }
+                                                        
+                                                            const entry = { id: compId, unique_name, type, value };
+                                                            (groups[pIdx] ||= []).push(entry);
+                                                          });
+                                                        
+                                                          // Monta pages no formato esperado: [{ components: [...] }, ...]
+                                                          const pages = Object.keys(groups).sort((a,b)=>a-b).map(k => ({
+                                                            components: groups[Number(k)]
+                                                          }));
+                                                        
+                                                          // customParams resolvidos automaticamente (sem aparecer no UI)
+                                                          const customParams = resolvedCustomParams || [];
+                                                        
+                                                          return {
+                                                            formId: String(formNode.formId || formNode.id || formNode.formJson?.id || ''),
+                                                            dynamicData: { customParams, pages }
+                                                          };
+                                                        }
                                                     
                                                       // ---------- fluxo ----------
                                                       $('da-start').addEventListener('click', async () => {
@@ -616,6 +619,7 @@
 </body>
 
 </html>
+
 
 
 
