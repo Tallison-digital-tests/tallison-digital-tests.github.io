@@ -23,21 +23,56 @@
         <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
 
 <script>
-(function setGeoCookie(){
-  const COOKIE_NAME = 'geoloc';
-  const MAX_AGE = 60 * 60 * 24 * 7; // 7 dias
-  function setCookie(val) {
-    try {
-      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(val)}; path=/; max-age=${MAX_AGE}; SameSite=Lax; Secure`;
-    } catch (e) {}
+(function setGeolocVar(){
+  // valores iniciais (caso alguém leia antes de resolver)
+  window.geoloc = 'pending';
+  window.geoloc_lat = null;
+  window.geoloc_lon = null;
+
+  // helpers de espelho (opcional, mas ajuda seu resolvedor achar)
+  function mirror(name, value) {
+    // <meta name="...">
+    let m = document.querySelector(`meta[name="${name}"]`);
+    if (!m) { m = document.createElement('meta'); m.setAttribute('name', name); document.head.appendChild(m); }
+    m.setAttribute('content', String(value));
+
+    // data-* no body (ex.: data-geoloc, data-geoloc-lat, data-geoloc-lon)
+    if (document.body) {
+      const dataName = name.replace(/_/g, '-'); // geoloc_lat -> geoloc-lat
+      document.body.setAttribute(`data-${dataName}`, String(value));
+    }
   }
-  if (!('geolocation' in navigator)) { setCookie('unsupported'); return; }
+
+  if (!('geolocation' in navigator)) {
+    window.geoloc = 'unsupported';
+    mirror('geoloc', 'unsupported');
+    window.dispatchEvent(new CustomEvent('geoloc:error', { detail: { code: 'UNSUPPORTED' } }));
+    return;
+  }
+
   navigator.geolocation.getCurrentPosition(
     pos => {
-      const { latitude, longitude } = pos.coords;
-      setCookie(`${latitude.toFixed(6)},${longitude.toFixed(6)}`);
+      const lat = Number(pos.coords.latitude.toFixed(6));
+      const lon = Number(pos.coords.longitude.toFixed(6));
+
+      // variáveis "de ambiente"
+      window.geoloc = `${lat},${lon}`;
+      window.geoloc_lat = lat;
+      window.geoloc_lon = lon;
+
+      // espelhos (para seu resolvedor automático)
+      mirror('geoloc', window.geoloc);
+      mirror('geoloc_lat', lat);
+      mirror('geoloc_lon', lon);
+
+      // sinaliza que está pronto (se quiser escutar em algum lugar)
+      window.dispatchEvent(new CustomEvent('geoloc:ready', { detail: { lat, lon } }));
     },
-    err => { setCookie('denied'); },
+    err => {
+      window.geoloc = 'denied';
+      mirror('geoloc', 'denied');
+      window.dispatchEvent(new CustomEvent('geoloc:error', { detail: err }));
+    },
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
   );
 })();
@@ -619,6 +654,7 @@
 </body>
 
 </html>
+
 
 
 
