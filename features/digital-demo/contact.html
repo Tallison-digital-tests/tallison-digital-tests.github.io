@@ -68,7 +68,7 @@
     <section class="Digital Anywhere — Demo">
         <div class="container">
 <br><br><br><br>
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
     <label style="min-width:180px" for="da-property-token"><strong>Property token</strong></label>
     <input id="da-property-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
   </div>
@@ -80,7 +80,7 @@
   </div>
 
   <div style="margin:12px 0">
-    <label for="da-form-id"><strong>Form alvo (para renderizar)</strong></label><br/>
+    <label for="da-form-id"><strong>Form alvo</strong></label><br/>
     <input id="da-form-id" type="number" value="25771" style="padding:8px;min-width:180px" />
   </div>
 
@@ -92,13 +92,11 @@
   "event": "manual",
   "locale": "pt-BR",
   "page": { "url": "<?URL?>" },
-  "variables": {
-    "example_key": "example_value"
-  }
+  "variables": { "example_key": "example_value" }
 }
     </textarea>
     <div style="color:#666;font-size:12px;margin-top:6px">
-      Dica: ajuste o payload conforme sua instância (ex.: <code>channel</code>, <code>event</code>, <code>variables</code>, etc.). A chamada é <strong>POST /configuration</strong> sem query de form.
+      A chamada é <strong>POST /configuration</strong> (sem query de form). O form alvo (ex.: 25771) é escolhido <em>na resposta</em>.
     </div>
   </div>
 
@@ -107,7 +105,7 @@
   <h3 style="margin-top:18px">Log</h3>
   <pre id="da-log" style="white-space:pre-wrap;background:#f6f8fa;padding:12px;border-radius:8px;font-size:12px"></pre>
 
-  <!-- Modal simples -->
+  <!-- Modal -->
   <div id="da-modal" role="dialog" aria-modal="true"
        style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px">
     <div id="da-card" style="background:#fff;max-width:720px;width:100%;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);padding:20px;max-height:85vh;overflow:auto">
@@ -126,11 +124,8 @@
 (function(){
   // ====== helpers UI ======
   const $ = (id) => document.getElementById(id);
-  const logEl = $('da-log');
-  const modal = $('da-modal');
-  const formEl = $('da-form');
-  const formTitleEl = $('da-form-title');
-  const msgEl = $('da-msg');
+  const logEl = $('da-log'), modal = $('da-modal'), formEl = $('da-form'),
+        formTitleEl = $('da-form-title'), msgEl = $('da-msg');
 
   function log(msg, kind) {
     const p = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
@@ -139,27 +134,24 @@
   const showModal = () => modal.style.display = 'flex';
   const hideModal = () => { modal.style.display='none'; formEl.innerHTML=''; msgEl.textContent=''; };
 
-  // ====== header exigido no /accessToken ======
+  // ====== formato do header exigido no /accessToken ======
   function asBearerUnderscore(token) {
     const t = String(token || '').trim();
     return /^bearer[_\s]/i.test(t) ? t : `bearer_${t}`;
   }
 
   // ====== chamadas ao PROXY (Vercel) ======
-  async function getAccessToken(proxyBase, propertyToken) {
+  async function exchangeAccessToken(proxyBase, propertyToken) {
+    // Tenta trocar; se 401, retorna null (vamos fazer fallback)
     const res = await fetch(`${proxyBase}/accessToken`, {
       method: 'POST',
       headers: { Authorization: asBearerUnderscore(propertyToken) }
     });
-    if (!res.ok) {
-      const t = await res.text().catch(()=> '');
-      throw new Error(`accessToken falhou: ${res.status} ${t}`);
-    }
+    if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
-    return data.accessToken || data.token || data.access_token || data.raw || '';
+    return data.accessToken || data.token || data.access_token || data.raw || null;
   }
 
-  // Agora /configuration é POST sem querystring; body = { accessToken, payload }
   async function postConfiguration(proxyBase, accessToken, payload) {
     const res = await fetch(`${proxyBase}/configuration`, {
       method: 'POST',
@@ -173,7 +165,6 @@
     return res.json();
   }
 
-  // /feedback permanece POST
   async function sendFeedback(proxyBase, accessToken, payload) {
     const res = await fetch(`${proxyBase}/feedback`, {
       method: 'POST',
@@ -193,14 +184,10 @@
     function walk(node) {
       if (!node || typeof node !== 'object' || seen.has(node)) return null;
       seen.add(node);
-
-      // match direto por id/formId
       if ((node.id == targetId || node.formId == targetId) && (node.fields || node.form?.fields || node.formDefinition?.fields)) {
         return node;
       }
-      // se for um objeto com 'forms'/'surveys'/'experiences', tenta dentro
-      const keys = Object.keys(node);
-      for (const k of keys) {
+      for (const k of Object.keys(node)) {
         const v = node[k];
         if (v && typeof v === 'object') {
           const found = walk(v);
@@ -301,19 +288,21 @@
 
     try {
       log('Trocando property token por accessToken...');
-      const accessToken = await getAccessToken(proxyBase, propertyToken);
-      log('Access token OK.', 'ok');
+      let accessToken = await exchangeAccessToken(proxyBase, propertyToken);
+
+      if (!accessToken) {
+        log('Exchange 401/sem token — usando o property token como accessToken (fallback).');
+        accessToken = propertyToken; // assume que já é accessToken
+      } else {
+        log('Access token OK.', 'ok');
+      }
 
       log('Chamando POST /configuration com payload...');
       const conf = await postConfiguration(proxyBase, accessToken, payload);
       log(conf);
 
-      // acha o form alvo na resposta "normal"
       const node = findFormNode(conf, targetFormId);
-      if (!node) {
-        log(`Form ${targetFormId} não encontrado na resposta do configuration.`, 'err');
-        return;
-      }
+      if (!node) { log(`Form ${targetFormId} não encontrado na resposta do configuration.`, 'err'); return; }
 
       const { title, fields } = extractFields(node);
       formTitleEl.textContent = title || `Form ${targetFormId}`;
@@ -337,7 +326,7 @@
           const out = await sendFeedback(proxyBase, accessToken, {
             formId: Number(targetFormId),
             responses,
-            channel: 'anywhere',
+            channel: payload.channel || 'anywhere',
             locale: payload.locale || 'pt-BR'
           });
           log('Feedback enviado.', 'ok');
@@ -499,6 +488,7 @@
 </body>
 
 </html>
+
 
 
 
