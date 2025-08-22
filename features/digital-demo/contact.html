@@ -68,7 +68,8 @@
     <section class="Digital Anywhere — Demo">
         <div class="container">
 <br><br><br><br>
-<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
     <label style="min-width:180px" for="da-property-token"><strong>Property token</strong></label>
     <input id="da-property-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
   </div>
@@ -96,7 +97,7 @@
 }
     </textarea>
     <div style="color:#666;font-size:12px;margin-top:6px">
-      A chamada é <strong>POST /configuration</strong> (sem query de form). O form alvo (ex.: 25771) é escolhido <em>na resposta</em>.
+      <strong>POST /configuration</strong> (sem query). O form 25771 é escolhido na <em>resposta</em>.
     </div>
   </div>
 
@@ -122,7 +123,7 @@
 
 <script>
 (function(){
-  // ====== helpers UI ======
+  // ===== UI helpers =====
   const $ = (id) => document.getElementById(id);
   const logEl = $('da-log'), modal = $('da-modal'), formEl = $('da-form'),
         formTitleEl = $('da-form-title'), msgEl = $('da-msg');
@@ -134,20 +135,22 @@
   const showModal = () => modal.style.display = 'flex';
   const hideModal = () => { modal.style.display='none'; formEl.innerHTML=''; msgEl.textContent=''; };
 
-  // ====== formato do header exigido no /accessToken ======
+  // ===== formato exato exigido no /accessToken =====
   function asBearerUnderscore(token) {
     const t = String(token || '').trim();
-    return /^bearer[_\s]/i.test(t) ? t : `bearer_${t}`;
+    // Gera "Bearer_<token>" (B maiúsculo + underscore) se não vier prefixado
+    if (/^Bearer[_\s]/.test(t)) return t;
+    if (/^bearer[_\s]/i.test(t)) return 'Bearer_' + t.replace(/^bearer[_\s]/i, '');
+    return `Bearer_${t}`;
   }
 
-  // ====== chamadas ao PROXY (Vercel) ======
+  // ===== chamadas ao PROXY =====
   async function exchangeAccessToken(proxyBase, propertyToken) {
-    // Tenta trocar; se 401, retorna null (vamos fazer fallback)
     const res = await fetch(`${proxyBase}/accessToken`, {
       method: 'POST',
       headers: { Authorization: asBearerUnderscore(propertyToken) }
     });
-    if (!res.ok) return null;
+    if (!res.ok) return null; // 401 → sem exchange
     const data = await res.json().catch(() => ({}));
     return data.accessToken || data.token || data.access_token || data.raw || null;
   }
@@ -178,7 +181,7 @@
     return res.json().catch(() => ({}));
   }
 
-  // ====== busca recursiva do form alvo (por id) ======
+  // ===== encontrar o form-alvo na resposta =====
   function findFormNode(root, targetId) {
     const seen = new WeakSet();
     function walk(node) {
@@ -269,7 +272,7 @@
     return answers;
   }
 
-  // ====== fluxo ======
+  // ===== fluxo =====
   $('da-start').addEventListener('click', async () => {
     log('Iniciando fluxo...');
     const proxyBase = $('da-proxy').value.trim();
@@ -292,7 +295,7 @@
 
       if (!accessToken) {
         log('Exchange 401/sem token — usando o property token como accessToken (fallback).');
-        accessToken = propertyToken; // assume que já é accessToken
+        accessToken = propertyToken; // tentativa de seguir mesmo assim
       } else {
         log('Access token OK.', 'ok');
       }
@@ -488,6 +491,7 @@
 </body>
 
 </html>
+
 
 
 
