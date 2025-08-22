@@ -69,341 +69,376 @@
         <div class="container">
 <br><br><br><br>
 
-                                              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
-                                                <label style="min-width:180px" for="da-token"><strong>Property token</strong></label>
-                                                <input id="da-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
-                                              </div>
-                                            
-                                              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
-                                                <label style="min-width:180px" for="da-proxy"><strong>Proxy (Vercel)</strong></label>
-                                                <input id="da-proxy" type="text" value="https://m-an-p.vercel.app/api" style="padding:8px;min-width:360px" />
-                                                <span style="font-size:12px;background:#eef;border-radius:999px;padding:2px 8px">/api (minúsculo)</span>
-                                              </div>
-                                            
-                                              <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
-                                                <label style="min-width:180px" for="da-form-id"><strong>Form alvo</strong></label>
-                                                <input id="da-form-id" type="number" value="25771" style="padding:8px;min-width:180px" />
-                                              </div>
-                                            
-                                              <button id="da-start" style="padding:10px 14px;cursor:pointer">Abrir Digital Anywhere</button>
-                                            
-                                              <h3 style="margin-top:18px">Log</h3>
-                                              <pre id="da-log" style="white-space:pre-wrap;background:#f6f8fa;padding:12px;border-radius:8px;font-size:12px"></pre>
-                                            
-                                              <!-- Popup estilo "iframe": só o form, com X, Enviar e Cancelar -->
-                                              <div id="da-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px">
-                                                <div id="da-frame" style="background:#fff;max-width:760px;width:100%;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden">
-                                                  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eee">
-                                                    <h3 id="da-title" style="margin:0;font-size:18px">Form</h3>
-                                                    <button id="da-x" title="Fechar" aria-label="Fechar" style="border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer">×</button>
-                                                  </div>
-                                                  <div style="padding:18px;max-height:70vh;overflow:auto">
-                                                    <form id="da-form"></form>
-                                                    <div id="da-msg" style="color:#666;font-size:12px;margin-top:8px"></div>
-                                                  </div>
-                                                  <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid #eee">
-                                                    <button id="da-cancel" type="button" style="padding:10px 14px;cursor:pointer;background:#f6f7f9;border:1px solid #e2e3e6;border-radius:8px">Cancelar</button>
-                                                    <button id="da-send" type="button" style="padding:10px 14px;cursor:pointer;background:#0a7a2f;color:#fff;border:0;border-radius:8px">Enviar</button>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            </section>
-                                            
-                                            <script>
-                                            (function(){
-                                              // ---------- helpers ----------
-                                              const $ = (id) => document.getElementById(id);
-                                              const logEl = $('da-log'), overlay = $('da-overlay'), formEl = $('da-form'),
-                                                    titleEl = $('da-title'), msgEl = $('da-msg');
-                                            
-                                              function log(msg, kind) {
-                                                const p = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
-                                                logEl.textContent += p + (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)) + '\n';
-                                              }
-                                              const open = () => overlay.style.display = 'flex';
-                                              const close = () => { overlay.style.display = 'none'; formEl.innerHTML = ''; msgEl.textContent = ''; };
-                                            
-                                              // Normaliza para "Bearer_<token>"
-                                              const asBearer_ = (t) => /^Bearer_/i.test(t) ? t : `Bearer_${String(t||'').replace(/^Bearer\s+/i,'').replace(/^bearer[_\s]/i,'')}`;
-                                            
-                                              // ---------- chamadas ao proxy ----------
-                                              async function getAccessToken(proxyBase, propertyToken){
-                                                const res = await fetch(`${proxyBase}/accessToken`, { method: 'POST', headers: { Authorization: asBearer_(propertyToken) }});
-                                                if (!res.ok) throw new Error(`accessToken falhou: ${res.status}`);
-                                                const data = await res.json().catch(()=> ({}));
-                                                return data.accessToken || data.token || data.access_token || data.raw || '';
-                                              }
-                                              async function getConfiguration(proxyBase, accessToken, extraQuery = {}){
-                                                // GET /api/configuration?accessToken=...&<params>  (sem form/formId)
-                                                const q = new URLSearchParams({ accessToken });
-                                                Object.entries(extraQuery).forEach(([k,v]) => {
-                                                  if (k==='form' || k==='formId' || v==null) return;
-                                                  if (Array.isArray(v)) v.forEach(x => q.append(k, String(x)));
-                                                  else if (typeof v === 'object') q.append(k, JSON.stringify(v));
-                                                  else q.append(k, String(v));
-                                                });
-                                                const res = await fetch(`${proxyBase}/configuration?` + q.toString());
-                                                if (!res.ok) {
-                                                  const t = await res.text().catch(()=> '');
-                                                  throw new Error(`configuration falhou: ${res.status} ${t}`);
-                                                }
-                                                return res.json();
-                                              }
-                                              async function sendFeedback(proxyBase, accessToken, payload){
-                                                const res = await fetch(`${proxyBase}/feedback`, {
-                                                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                                  body: JSON.stringify({ accessToken, ...payload })
-                                                });
-                                                if (!res.ok) {
-                                                  const t = await res.text().catch(()=> '');
-                                                  throw new Error(`feedback falhou: ${res.status} ${t}`);
-                                                }
-                                                return res.json().catch(()=> ({}));
-                                              }
-                                            
-                                              // ---------- montagem do form a partir de formJson ----------
-                                              function findFormById(conf, targetId) {
-                                                const forms = conf.forms || conf.Forms || [];
-                                                const tid = String(targetId);
-                                                return forms.find(f => String(f.formId || f.id) === tid || String(f.formJson?.id) === tid) || null;
-                                              }
-                                            
-                                              // Cria inputs para componentes (radio/checkbox recebem opções; ratings viram number com limites)
-                                              function inputForComponent(comp, pageIndex) {
-                                                const wrap = document.createElement('div');
-                                                wrap.style.display='flex'; wrap.style.gap='8px'; wrap.style.alignItems='center'; wrap.style.margin='12px 0';
-                                            
-                                                const label = document.createElement('label');
-                                                label.style.minWidth = '180px';
-                                                label.textContent = comp.label || comp.unique_name || comp.component || 'Campo';
-                                            
-                                                // dataset para conseguir reconstruir o payload depois
-                                                wrap.dataset.pageIndex = String(pageIndex);
-                                                wrap.dataset.compId = String(comp.id);
-                                                wrap.dataset.uniqueName = comp.unique_name || '';
-                                                wrap.dataset.type = comp.component || comp.type || '';
-                                            
-                                                let field = null;
-                                                const opts = comp.optionsById || comp.options || null;
-                                                const type = String(comp.component || '').toLowerCase();
-                                            
-                                                if (type === 'radio' && Array.isArray(opts)) {
-                                                  field = document.createElement('div');
-                                                  opts.forEach(o => {
-                                                    const id = `r_${comp.id}_${o.id}`;
-                                                    const row = document.createElement('label');
-                                                    row.style.display='inline-flex'; row.style.gap='6px'; row.style.marginRight='12px'; row.style.alignItems='center';
-                                                    const inp = document.createElement('input'); inp.type='radio'; inp.name = `radio_${comp.id}`; inp.value = String(o.id); inp.id = id;
-                                                    const txt = document.createElement('span'); txt.textContent = o.label ?? o.id;
-                                                    row.appendChild(inp); row.appendChild(txt);
-                                                    field.appendChild(row);
-                                                  });
-                                                } else if (type === 'checkbox' && Array.isArray(opts)) {
-                                                  field = document.createElement('div');
-                                                  opts.forEach(o => {
-                                                    const id = `c_${comp.id}_${o.id}`;
-                                                    const row = document.createElement('label');
-                                                    row.style.display='inline-flex'; row.style.gap='6px'; row.style.marginRight='12px'; row.style.alignItems='center';
-                                                    const inp = document.createElement('input'); inp.type='checkbox'; inp.value = String(o.id); inp.id = id;
-                                                    const txt = document.createElement('span'); txt.textContent = o.label ?? o.id;
-                                                    row.appendChild(inp); row.appendChild(txt);
-                                                    field.appendChild(row);
-                                                  });
-                                                } else if (type === 'select' && Array.isArray(opts)) {
-                                                  field = document.createElement('select');
-                                                  field.style.minWidth='260px'; field.style.padding='8px';
-                                                  const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —';
-                                                  field.appendChild(ph);
-                                                  opts.forEach(o => {
-                                                    const opt = document.createElement('option');
-                                                    opt.value = String(o.id ?? o.value ?? o);
-                                                    opt.textContent = String(o.label ?? o.name ?? o.id ?? o);
-                                                    field.appendChild(opt);
-                                                  });
-                                                } else if (type === 'textinput') {
-                                                  field = document.createElement('input'); field.type='text'; field.style.minWidth='260px'; field.style.padding='8px';
-                                                } else if (type === 'textarea' || type === 'textArea') {
-                                                  field = document.createElement('textarea'); field.rows=3; field.style.minWidth='260px'; field.style.padding='8px';
-                                                } else if (type === 'grading1to10') {
-                                                  field = document.createElement('input'); field.type='number'; field.min='1'; field.max='10'; field.style.width='120px'; field.style.padding='8px';
-                                                } else if (type === 'grading1to7') {
-                                                  field = document.createElement('input'); field.type='number'; field.min='1'; field.max='7'; field.style.width='120px'; field.style.padding='8px';
-                                                } else if (type === 'nps') {
-                                                  field = document.createElement('input'); field.type='number'; field.min='0'; field.max='10'; field.style.width='120px'; field.style.padding='8px';
-                                                } else if (type === 'image') {
-                                                  field = document.createElement('input'); field.type='url'; field.placeholder='https://...'; field.style.minWidth='260px'; field.style.padding='8px';
-                                                } else {
-                                                  // fallback: texto
-                                                  field = document.createElement('input'); field.type='text'; field.style.minWidth='260px'; field.style.padding='8px';
-                                                }
-                                            
-                                                wrap.appendChild(label);
-                                                wrap.appendChild(field);
-                                                return wrap;
-                                              }
-                                            
-                                              // Renderiza customParams (Boolean/Text/Number)
-                                              function inputsForCustomParams(customParamsJsonStr) {
-                                                try {
-                                                  const arr = JSON.parse(customParamsJsonStr || '[]');
-                                                  return arr.map(cp => {
-                                                    const row = document.createElement('div');
-                                                    row.style.display='flex'; row.style.gap='8px'; row.style.alignItems='center'; row.style.margin='12px 0';
-                                                    row.dataset.customParam = '1';
-                                                    row.dataset.cpId = String(cp.id || '');
-                                                    row.dataset.cpUnique = cp.unique_name || '';
-                                                    row.dataset.cpType = cp.type || 'Text';
-                                            
-                                                    const label = document.createElement('label'); label.style.minWidth='180px';
-                                                    label.textContent = cp.unique_name || `param_${cp.id}`;
-                                            
-                                                    let field;
-                                                    const t = String(cp.type || '').toLowerCase();
-                                                    if (t === 'boolean') {
-                                                      field = document.createElement('input'); field.type='checkbox';
-                                                    } else if (t === 'number') {
-                                                      field = document.createElement('input'); field.type='number'; field.style.width='120px'; field.style.padding='8px';
-                                                    } else {
-                                                      field = document.createElement('input'); field.type='text'; field.style.minWidth='260px'; field.style.padding='8px';
-                                                    }
-                                            
-                                                    row.appendChild(label); row.appendChild(field);
-                                                    return row;
-                                                  });
-                                                } catch { return []; }
-                                              }
-                                            
-                                              function collectFeedbackPayload(formNode) {
-                                                // pages → dynamicData
-                                                const pages = [];
-                                                const groups = {}; // pageIndex -> array of components
-                                                [...formEl.querySelectorAll('div[data-page-index]')].forEach(wrap => {
-                                                  const pIdx = Number(wrap.dataset.pageIndex || 0);
-                                                  const compId = Number(wrap.dataset.compId);
-                                                  const unique_name = wrap.dataset.uniqueName || '';
-                                                  const type = wrap.dataset.type || '';
-                                            
-                                                  let value = null;
-                                                  const typeLower = type.toLowerCase();
-                                            
-                                                  if (typeLower === 'radio') {
-                                                    const checked = wrap.querySelector('input[type="radio"]:checked');
-                                                    value = checked ? checked.value : '';
-                                                  } else if (typeLower === 'checkbox') {
-                                                    value = [...wrap.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
-                                                  } else {
-                                                    const inp = wrap.querySelector('input, select, textarea');
-                                                    value = inp ? inp.value : '';
-                                                    if (typeLower === 'grading1to10' || typeLower === 'grading1to7' || typeLower === 'nps') {
-                                                      value = value === '' ? null : Number(value);
-                                                    }
-                                                  }
-                                            
-                                                  const entry = { id: compId, unique_name, type, value };
-                                                  (groups[pIdx] ||= []).push(entry);
-                                                });
-                                            
-                                                const formJsonPages = (formNode.formJson && formNode.formJson.pages) || [];
-                                                Object.keys(groups).forEach(k => {
-                                                  const idx = Number(k);
-                                                  const name = formJsonPages[idx]?.name || `Page ${idx+1}`;
-                                                  pages.push({ name, dynamicData: groups[idx] });
-                                                });
-                                            
-                                                // customParams
-                                                const customParams = [...formEl.querySelectorAll('[data-custom-param="1"]')].map(row => {
-                                                  const id = row.dataset.cpId || '';
-                                                  const unique_name = row.dataset.cpUnique || '';
-                                                  const type = row.dataset.cpType || 'Text';
-                                                  const inp = row.querySelector('input');
-                                                  let value;
-                                                  const t = type.toLowerCase();
-                                                  if (t === 'boolean') value = !!inp.checked;
-                                                  else if (t === 'number') value = inp.value === '' ? null : Number(inp.value);
-                                                  else value = inp.value || '';
-                                                  return { id, unique_name, type, value };
-                                                });
-                                            
-                                                return {
-                                                  formId: String(formNode.formId || formNode.id || formNode.formJson?.id || ''),
-                                                  dynamicData: { customParams, pages }
-                                                };
-                                              }
-                                            
-                                              // ---------- fluxo ----------
-                                              $('da-start').addEventListener('click', async () => {
-                                                log('Iniciando fluxo...');
-                                                const proxyBase = $('da-proxy').value.trim();
-                                                const propertyToken = $('da-token').value.trim();
-                                                const targetFormId = $('da-form-id').value.trim();
-                                                if (!proxyBase || !propertyToken) { log('Preencha Proxy e Property token.', 'err'); return; }
-                                            
-                                                try {
-                                                  log('Trocando property token por accessToken...');
-                                                  const accessToken = await getAccessToken(proxyBase, propertyToken);
-                                                  log('Access token OK.', 'ok');
-                                            
-                                                  log('GET /configuration...');
-                                                  const conf = await getConfiguration(proxyBase, accessToken);
-                                                  log(conf);
-                                            
-                                                  const formNode = findFormById(conf, targetFormId);
-                                                  if (!formNode) { log(`Form ${targetFormId} não encontrado em configuration.`, 'err'); return; }
-                                            
-                                                  // Render
-                                                  titleEl.textContent = formNode.title || formNode.name || formNode.formJson?.settings?.formMobileSettingsContract?.title || `Form ${targetFormId}`;
-                                                  formEl.innerHTML = '';
-                                            
-                                                  // customParams primeiro (se existirem)
-                                                  if (formNode.customParams) {
-                                                    const cpInputs = inputsForCustomParams(formNode.customParams);
-                                                    if (cpInputs.length) {
-                                                      const cpTitle = document.createElement('div');
-                                                      cpTitle.textContent = 'Parâmetros';
-                                                      cpTitle.style.fontWeight='600';
-                                                      cpTitle.style.marginTop='6px';
-                                                      formEl.appendChild(cpTitle);
-                                                      cpInputs.forEach(n => formEl.appendChild(n));
-                                                      const hr = document.createElement('hr'); hr.style.margin='6px 0 12px'; hr.style.border='0'; hr.style.borderTop='1px solid #eee';
-                                                      formEl.appendChild(hr);
-                                                    }
-                                                  }
-                                            
-                                                  const pages = (formNode.formJson && formNode.formJson.pages) || [];
-                                                  pages.forEach((pg, idx) => {
-                                                    const h = document.createElement('div'); h.textContent = pg.name || `Página ${idx+1}`;
-                                                    h.style.fontWeight='600'; h.style.margin='6px 0';
-                                                    formEl.appendChild(h);
-                                            
-                                                    (pg.dynamicData || []).forEach(comp => {
-                                                      formEl.appendChild(inputForComponent(comp, idx));
-                                                    });
-                                                  });
-                                            
-                                                  // abre popup
-                                                  open();
-                                            
-                                                  $('da-x').onclick = close;
-                                                  $('da-cancel').onclick = close;
-                                            
-                                                  $('da-send').onclick = async () => {
-                                                    msgEl.textContent = 'Enviando...';
-                                                    try {
-                                                      const payload = collectFeedbackPayload(formNode);
-                                                      log('Payload feedback:'); log(payload);
-                                                      const out = await sendFeedback(proxyBase, accessToken, payload);
-                                                      log('Feedback enviado.', 'ok'); log(out);
-                                                      msgEl.style.color='#0a7a2f'; msgEl.textContent='Feedback enviado com sucesso!';
-                                                    } catch (e) {
-                                                      msgEl.style.color='#b00020'; msgEl.textContent='Falha ao enviar feedback — veja o log.';
-                                                      log(e.message || e, 'err');
-                                                    }
-                                                  };
-                                            
-                                                } catch (e) { log(e.message || e, 'err'); }
-                                              });
-                                            })();
-                                            </script>
+
+
+
+
+
+                                                                  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+                                                        <label style="min-width:180px" for="da-token"><strong>Property token</strong></label>
+                                                        <input id="da-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
+                                                      </div>
+                                                    
+                                                      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+                                                        <label style="min-width:180px" for="da-proxy"><strong>Proxy (Vercel)</strong></label>
+                                                        <input id="da-proxy" type="text" value="https://m-an-p.vercel.app/api" style="padding:8px;min-width:360px" />
+                                                        <span style="font-size:12px;background:#eef;border-radius:999px;padding:2px 8px">/api (minúsculo)</span>
+                                                      </div>
+                                                    
+                                                      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+                                                        <label style="min-width:180px" for="da-form-id"><strong>Form alvo</strong></label>
+                                                        <input id="da-form-id" type="number" value="25771" style="padding:8px;min-width:180px" />
+                                                      </div>
+                                                    
+                                                      <button id="da-start" style="padding:10px 14px;cursor:pointer">Abrir Digital Anywhere</button>
+                                                    
+                                                      <h3 style="margin-top:18px">Log</h3>
+                                                      <pre id="da-log" style="white-space:pre-wrap;background:#f6f8fa;padding:12px;border-radius:8px;font-size:12px"></pre>
+                                                    
+                                                      <!-- Popup estilo "iframe": só o form, com X, Enviar e Cancelar -->
+                                                      <div id="da-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px">
+                                                        <div id="da-frame" style="background:#fff;max-width:760px;width:100%;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.2);overflow:hidden">
+                                                          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #eee">
+                                                            <h3 id="da-title" style="margin:0;font-size:18px">Form</h3>
+                                                            <button id="da-x" title="Fechar" aria-label="Fechar" style="border:0;background:transparent;font-size:20px;line-height:1;cursor:pointer">×</button>
+                                                          </div>
+                                                          <div style="padding:18px;max-height:70vh;overflow:auto">
+                                                            <form id="da-form"></form>
+                                                            <div id="da-msg" style="color:#666;font-size:12px;margin-top:8px"></div>
+                                                          </div>
+                                                          <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid #eee">
+                                                            <button id="da-cancel" type="button" style="padding:10px 14px;cursor:pointer;background:#f6f7f9;border:1px solid #e2e3e6;border-radius:8px">Cancelar</button>
+                                                            <button id="da-send" type="button" style="padding:10px 14px;cursor:pointer;background:#0a7a2f;color:#fff;border:0;border-radius:8px">Enviar</button>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    </section>
+                                                    
+                                                    <script>
+                                                    (function(){
+                                                      // ---------- helpers ----------
+                                                      const $ = (id) => document.getElementById(id);
+                                                      const logEl = $('da-log'), overlay = $('da-overlay'), formEl = $('da-form'),
+                                                            titleEl = $('da-title'), msgEl = $('da-msg');
+                                                    
+                                                      function log(msg, kind) {
+                                                        const p = kind === 'err' ? '❌ ' : kind === 'ok' ? '✅ ' : '• ';
+                                                        logEl.textContent += p + (typeof msg === 'string' ? msg : JSON.stringify(msg, null, 2)) + '\n';
+                                                      }
+                                                      const open = () => overlay.style.display = 'flex';
+                                                      const close = () => { overlay.style.display = 'none'; formEl.innerHTML = ''; msgEl.textContent = ''; };
+                                                    
+                                                      const asBearer_ = (t) => /^Bearer_/i.test(t) ? t : `Bearer_${String(t||'').replace(/^Bearer\s+/i,'').replace(/^bearer[_\s]/i,'')}`;
+                                                    
+                                                      // ---------- chamadas ao proxy ----------
+                                                      async function getAccessToken(proxyBase, propertyToken){
+                                                        const res = await fetch(`${proxyBase}/accessToken`, { method: 'POST', headers: { Authorization: asBearer_(propertyToken) }});
+                                                        if (!res.ok) throw new Error(`accessToken falhou: ${res.status}`);
+                                                        const data = await res.json().catch(()=> ({}));
+                                                        return data.accessToken || data.token || data.access_token || data.raw || '';
+                                                      }
+                                                      async function getConfiguration(proxyBase, accessToken, extraQuery = {}){
+                                                        const q = new URLSearchParams({ accessToken });
+                                                        Object.entries(extraQuery).forEach(([k,v]) => {
+                                                          if (k==='form' || k==='formId' || v==null) return;
+                                                          if (Array.isArray(v)) v.forEach(x => q.append(k, String(x)));
+                                                          else if (typeof v === 'object') q.append(k, JSON.stringify(v));
+                                                          else q.append(k, String(v));
+                                                        });
+                                                        const res = await fetch(`${proxyBase}/configuration?` + q.toString());
+                                                        if (!res.ok) {
+                                                          const t = await res.text().catch(()=> '');
+                                                          throw new Error(`configuration falhou: ${res.status} ${t}`);
+                                                        }
+                                                        return res.json();
+                                                      }
+                                                      async function sendFeedback(proxyBase, accessToken, payload){
+                                                        const res = await fetch(`${proxyBase}/feedback`, {
+                                                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({ accessToken, ...payload })
+                                                        });
+                                                        if (!res.ok) {
+                                                          const t = await res.text().catch(()=> '');
+                                                          throw new Error(`feedback falhou: ${res.status} ${t}`);
+                                                        }
+                                                        return res.json().catch(()=> ({}));
+                                                      }
+                                                    
+                                                      // ---------- util: normalização e coleta de valores da página ----------
+                                                      const norm = (s) => String(s||'').toLowerCase().replace(/[\s\-_]+/g,'').replace(/[^a-z0-9]/g,'');
+                                                      function getFromUrl(name) {
+                                                        const sp = new URLSearchParams(location.search);
+                                                        const hp = location.hash.startsWith('#?') ? new URLSearchParams(location.hash.slice(2)) : new URLSearchParams();
+                                                        const key = norm(name);
+                                                        for (const p of [sp, hp]) {
+                                                          for (const [k,v] of p.entries()) if (norm(k)===key) return v;
+                                                        }
+                                                        return undefined;
+                                                      }
+                                                      function getFromCookies(name) {
+                                                        const key = norm(name);
+                                                        const parts = document.cookie ? document.cookie.split(';') : [];
+                                                        for (const c of parts) {
+                                                          const [k,...rest] = c.split('=');
+                                                          if (norm(k.trim())===key) return decodeURIComponent((rest.join('=')||'').trim());
+                                                        }
+                                                        return undefined;
+                                                      }
+                                                      function getFromWindow(name) {
+                                                        // tenta window[name], window[nameCamel], body.dataset[nameCamel], <meta name="name">
+                                                        const camel = name.replace(/[-_](\w)/g, (_,c)=>c.toUpperCase());
+                                                        if (window[name] != null) return window[name];
+                                                        if (window[camel] != null) return window[camel];
+                                                        if (document.body && document.body.dataset && document.body.dataset[camel] != null) return document.body.dataset[camel];
+                                                        const meta = document.querySelector(`meta[name="${name}"]`) || document.querySelector(`meta[name="${camel}"]`);
+                                                        if (meta && meta.content != null) return meta.content;
+                                                        return undefined;
+                                                      }
+                                                      function coerceType(val, type) {
+                                                        const t = String(type||'Text').toLowerCase();
+                                                        if (val === undefined) return t==='text' ? '' : null;
+                                                        if (t === 'boolean') {
+                                                          const s = String(val).toLowerCase();
+                                                          return ['1','true','yes','y','on'].includes(s) ? true :
+                                                                 ['0','false','no','n','off',''].includes(s) ? false : null;
+                                                        }
+                                                        if (t === 'number') {
+                                                          const n = Number(val);
+                                                          return Number.isFinite(n) ? n : null;
+                                                        }
+                                                        return String(val);
+                                                      }
+                                                      function resolveCustomParams(customParamsJsonStr) {
+                                                        try {
+                                                          const arr = JSON.parse(customParamsJsonStr || '[]');
+                                                          return arr.map(cp => {
+                                                            const name = cp.unique_name || cp.id || '';
+                                                            const found = getFromUrl(name) ?? getFromCookies(name) ?? getFromWindow(name);
+                                                            return {
+                                                              id: String(cp.id || ''),
+                                                              unique_name: String(cp.unique_name || ''),
+                                                              type: cp.type || 'Text',
+                                                              value: coerceType(found, cp.type)
+                                                            };
+                                                          });
+                                                        } catch {
+                                                          return [];
+                                                        }
+                                                      }
+                                                    
+                                                      // ---------- do configuration para UI ----------
+                                                      function findFormById(conf, targetId) {
+                                                        const forms = conf.forms || conf.Forms || [];
+                                                        const tid = String(targetId);
+                                                        return forms.find(f => String(f.formId || f.id) === tid || String(f.formJson?.id) === tid) || null;
+                                                      }
+                                                    
+                                                      // botãozinho básico
+                                                      function mk(tag, styles=''){ const el=document.createElement(tag); if(styles) el.style.cssText=styles; return el; }
+                                                    
+                                                      // monta um componente da página
+                                                      function inputForComponent(comp, pageIndex) {
+                                                        const wrap = mk('div','display:flex;gap:8px;align-items:center;margin:12px 0;flex-wrap:wrap');
+                                                        const label = mk('label','min-width:180px');
+                                                        label.textContent = comp.label || comp.unique_name || comp.component || 'Campo';
+                                                    
+                                                        wrap.dataset.pageIndex = String(pageIndex);
+                                                        wrap.dataset.compId = String(comp.id);
+                                                        wrap.dataset.uniqueName = comp.unique_name || '';
+                                                        wrap.dataset.type = comp.component || comp.type || '';
+                                                    
+                                                        let field = null;
+                                                        const opts = comp.optionsById || comp.options || null;
+                                                        const type = String(comp.component || '').toLowerCase();
+                                                    
+                                                        if (type === 'radio' && Array.isArray(opts)) {
+                                                          field = mk('div','display:flex;gap:12px;flex-wrap:wrap');
+                                                          opts.forEach(o => {
+                                                            const id = `r_${comp.id}_${o.id}`;
+                                                            const row = mk('label','display:inline-flex;gap:6px;align-items:center');
+                                                            const inp = document.createElement('input'); inp.type='radio'; inp.name = `radio_${comp.id}`; inp.value = String(o.id); inp.id = id;
+                                                            const txt = document.createElement('span'); txt.textContent = o.label ?? o.id;
+                                                            row.appendChild(inp); row.appendChild(txt); field.appendChild(row);
+                                                          });
+                                                        }
+                                                        else if (type === 'checkbox' && Array.isArray(opts)) {
+                                                          field = mk('div','display:flex;gap:12px;flex-wrap:wrap');
+                                                          opts.forEach(o => {
+                                                            const id = `c_${comp.id}_${o.id}`;
+                                                            const row = mk('label','display:inline-flex;gap:6px;align-items:center');
+                                                            const inp = document.createElement('input'); inp.type='checkbox'; inp.value = String(o.id); inp.id = id;
+                                                            const txt = document.createElement('span'); txt.textContent = o.label ?? o.id;
+                                                            row.appendChild(inp); row.appendChild(txt); field.appendChild(row);
+                                                          });
+                                                        }
+                                                        else if (type === 'select' && Array.isArray(opts)) {
+                                                          field = document.createElement('select');
+                                                          field.style.minWidth='260px'; field.style.padding='8px';
+                                                          const ph = document.createElement('option'); ph.value=''; ph.textContent='— selecione —';
+                                                          field.appendChild(ph);
+                                                          opts.forEach(o => {
+                                                            const opt = document.createElement('option');
+                                                            opt.value = String(o.id ?? o.value ?? o);
+                                                            opt.textContent = String(o.label ?? o.name ?? o.id ?? o);
+                                                            field.appendChild(opt);
+                                                          });
+                                                        }
+                                                        else if (type === 'textinput') {
+                                                          field = document.createElement('input'); field.type='text'; field.style.minWidth='260px'; field.style.padding='8px';
+                                                        }
+                                                        else if (type === 'textarea' || type === 'textArea') {
+                                                          field = document.createElement('textarea'); field.rows=3; field.style.minWidth='260px'; field.style.padding='8px';
+                                                        }
+                                                        // ⭐ RATING: usa ratingScales para renderizar uma escala clicável
+                                                        else if (type === 'grading1to10' || type === 'grading1to7' || type === 'nps' || Array.isArray(comp.ratingScales)) {
+                                                          const scales = Array.isArray(comp.ratingScales) && comp.ratingScales.length
+                                                            ? comp.ratingScales.map(s => ({ value: Number(s.scale), label: s.label }))
+                                                            : (type==='nps' ? Array.from({length:11},(_,i)=>({value:i}))    // 0..10
+                                                                            : Array.from({length: (type==='grading1to7'?7:10)},(_,i)=>({value:i+1}))); // 1..7 ou 1..10
+                                                    
+                                                          field = mk('div','display:flex;gap:6px;flex-wrap:wrap;align-items:center');
+                                                          field.setAttribute('role','group');
+                                                          // hidden para guardar o valor escolhido
+                                                          const hidden = document.createElement('input'); hidden.type='hidden'; hidden.value='';
+                                                          hidden.className = 'rating-hidden';
+                                                          field.appendChild(hidden);
+                                                    
+                                                          scales.forEach(s => {
+                                                            const btn = mk('button','border:1px solid #e2e3e6;padding:8px 10px;border-radius:8px;background:#f7f8fa;cursor:pointer;min-width:40px');
+                                                            btn.type='button';
+                                                            btn.dataset.value = String(s.value);
+                                                            btn.title = s.label ? `${s.value} — ${s.label}` : String(s.value);
+                                                            btn.textContent = String(s.value);
+                                                            btn.addEventListener('click', () => {
+                                                              // desmarca todos
+                                                              field.querySelectorAll('button').forEach(b => b.style.background='#f7f8fa');
+                                                              btn.style.background = '#dbeafe'; // marca
+                                                              hidden.value = String(s.value);
+                                                            });
+                                                            field.appendChild(btn);
+                                                          });
+                                                        }
+                                                        else if (type === 'image') {
+                                                          field = document.createElement('input'); field.type='url'; field.placeholder='https://...'; field.style.minWidth='260px'; field.style.padding='8px';
+                                                        }
+                                                        else {
+                                                          field = document.createElement('input'); field.type='text'; field.style.minWidth='260px'; field.style.padding='8px';
+                                                        }
+                                                    
+                                                        wrap.appendChild(label);
+                                                        wrap.appendChild(field);
+                                                        return wrap;
+                                                      }
+                                                    
+                                                      // monta payload do feedback
+                                                      function collectFeedbackPayload(formNode, resolvedCustomParams) {
+                                                        const pages = [];
+                                                        const groups = {}; // pageIndex -> array de componentes
+                                                    
+                                                        [...formEl.querySelectorAll('div[data-page-index]')].forEach(wrap => {
+                                                          const pIdx = Number(wrap.dataset.pageIndex || 0);
+                                                          const compId = Number(wrap.dataset.compId);
+                                                          const unique_name = wrap.dataset.uniqueName || '';
+                                                          const type = wrap.dataset.type || '';
+                                                          const typeLower = type.toLowerCase();
+                                                    
+                                                          let value = null;
+                                                          if (typeLower === 'radio') {
+                                                            const checked = wrap.querySelector('input[type="radio"]:checked');
+                                                            value = checked ? checked.value : '';
+                                                          } else if (typeLower === 'checkbox') {
+                                                            value = [...wrap.querySelectorAll('input[type="checkbox"]:checked')].map(i => i.value);
+                                                          } else if (typeLower === 'grading1to10' || typeLower === 'grading1to7' || typeLower === 'nps') {
+                                                            const hidden = wrap.querySelector('.rating-hidden');
+                                                            value = hidden && hidden.value !== '' ? Number(hidden.value) : null;
+                                                          } else {
+                                                            const inp = wrap.querySelector('input, select, textarea');
+                                                            value = inp ? inp.value : '';
+                                                            if (typeLower.includes('number')) value = value === '' ? null : Number(value);
+                                                          }
+                                                    
+                                                          const entry = { id: compId, unique_name, type, value };
+                                                          (groups[pIdx] ||= []).push(entry);
+                                                        });
+                                                    
+                                                        const formJsonPages = (formNode.formJson && formNode.formJson.pages) || [];
+                                                        Object.keys(groups).forEach(k => {
+                                                          const idx = Number(k);
+                                                          const name = formJsonPages[idx]?.name || `Page ${idx+1}`;
+                                                          pages.push({ name, dynamicData: groups[idx] });
+                                                        });
+                                                    
+                                                        // customParams resolvidos automaticamente (não aparecem na UI)
+                                                        const customParams = resolvedCustomParams || [];
+                                                    
+                                                        return {
+                                                          formId: String(formNode.formId || formNode.id || formNode.formJson?.id || ''),
+                                                          dynamicData: { customParams, pages }
+                                                        };
+                                                      }
+                                                    
+                                                      // ---------- fluxo ----------
+                                                      $('da-start').addEventListener('click', async () => {
+                                                        log('Iniciando fluxo...');
+                                                        const proxyBase = $('da-proxy').value.trim();
+                                                        const propertyToken = $('da-token').value.trim();
+                                                        const targetFormId = $('da-form-id').value.trim();
+                                                        if (!proxyBase || !propertyToken) { log('Preencha Proxy e Property token.', 'err'); return; }
+                                                    
+                                                        try {
+                                                          log('Trocando property token por accessToken...');
+                                                          const accessToken = await getAccessToken(proxyBase, propertyToken);
+                                                          log('Access token OK.', 'ok');
+                                                    
+                                                          log('GET /configuration...');
+                                                          const conf = await getConfiguration(proxyBase, accessToken);
+                                                          log(conf);
+                                                    
+                                                          const formNode = findFormById(conf, targetFormId);
+                                                          if (!formNode) { log(`Form ${targetFormId} não encontrado em configuration.`, 'err'); return; }
+                                                    
+                                                          // Resolve customParams automaticamente a partir da página (sem exibir no formulário)
+                                                          let resolvedCP = [];
+                                                          if (formNode.customParams) {
+                                                            resolvedCP = resolveCustomParams(formNode.customParams);
+                                                            log({ customParams_resolvidos: resolvedCP });
+                                                          }
+                                                    
+                                                          // Render pages/components
+                                                          titleEl.textContent = formNode.title || formNode.name || formNode.formJson?.settings?.formMobileSettingsContract?.title || `Form ${targetFormId}`;
+                                                          formEl.innerHTML = '';
+                                                          const pages = (formNode.formJson && formNode.formJson.pages) || [];
+                                                          pages.forEach((pg, idx) => {
+                                                            const h = document.createElement('div'); h.textContent = pg.name || `Página ${idx+1}`;
+                                                            h.style.fontWeight='600'; h.style.margin='6px 0';
+                                                            formEl.appendChild(h);
+                                                            (pg.dynamicData || []).forEach(comp => formEl.appendChild(inputForComponent(comp, idx)));
+                                                          });
+                                                    
+                                                          // abre popup
+                                                          open();
+                                                    
+                                                          $('da-x').onclick = close;
+                                                          $('da-cancel').onclick = close;
+                                                    
+                                                          $('da-send').onclick = async () => {
+                                                            msgEl.textContent = 'Enviando...';
+                                                            try {
+                                                              const payload = collectFeedbackPayload(formNode, resolvedCP);
+                                                              log('Payload feedback:'); log(payload);
+                                                              const out = await sendFeedback(proxyBase, accessToken, payload);
+                                                              log('Feedback enviado.', 'ok'); log(out);
+                                                              msgEl.style.color='#0a7a2f'; msgEl.textContent='Feedback enviado com sucesso!';
+                                                            } catch (e) {
+                                                              msgEl.style.color='#b00020'; msgEl.textContent='Falha ao enviar feedback — veja o log.';
+                                                              log(e.message || e, 'err');
+                                                            }
+                                                          };
+                                                    
+                                                        } catch (e) { log(e.message || e, 'err'); }
+                                                      });
+                                                    })();
+                                                    </script>
 
 
 
@@ -552,6 +587,7 @@
 </body>
 
 </html>
+
 
 
 
