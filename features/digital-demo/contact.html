@@ -69,7 +69,7 @@
         <div class="container">
 <br><br><br><br>
 
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
+ <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0">
     <label style="min-width:180px" for="da-property-token"><strong>Property token</strong></label>
     <input id="da-property-token" type="password" placeholder="cole aqui (não exponha em produção)" style="padding:8px;min-width:280px" />
   </div>
@@ -86,18 +86,17 @@
   </div>
 
   <div style="margin:12px 0">
-    <label for="da-config-json"><strong>Configuration payload (JSON)</strong></label>
-    <textarea id="da-config-json" style="width:100%;min-height:200px;padding:10px;font-family:ui-monospace,Consolas,monospace">
+    <label for="da-config-query"><strong>Configuration query (JSON → query params)</strong></label>
+    <textarea id="da-config-query" style="width:100%;min-height:160px;padding:10px;font-family:ui-monospace,Consolas,monospace">
 {
   "channel": "anywhere",
   "event": "manual",
   "locale": "pt-BR",
-  "page": { "url": "<?URL?>" },
-  "variables": { "example_key": "example_value" }
+  "url": "<?URL?>"
 }
     </textarea>
     <div style="color:#666;font-size:12px;margin-top:6px">
-      <strong>POST /configuration</strong> (sem query). O form 25771 é escolhido na <em>resposta</em>.
+      Esses pares viram <em>query params</em> no GET (sem <code>form</code> / <code>formId</code>). Ex.: <code>?channel=anywhere&amp;url=...</code>
     </div>
   </div>
 
@@ -123,7 +122,6 @@
 
 <script>
 (function(){
-  // ===== UI helpers =====
   const $ = (id) => document.getElementById(id);
   const logEl = $('da-log'), modal = $('da-modal'), formEl = $('da-form'),
         formTitleEl = $('da-form-title'), msgEl = $('da-msg');
@@ -135,32 +133,41 @@
   const showModal = () => modal.style.display = 'flex';
   const hideModal = () => { modal.style.display='none'; formEl.innerHTML=''; msgEl.textContent=''; };
 
-  // ===== formato exato exigido no /accessToken =====
+  // Header exigido no /accessToken (o proxy aceita "Bearer_<token>")
   function asBearerUnderscore(token) {
     const t = String(token || '').trim();
-    // Gera "Bearer_<token>" (B maiúsculo + underscore) se não vier prefixado
     if (/^Bearer[_\s]/.test(t)) return t;
     if (/^bearer[_\s]/i.test(t)) return 'Bearer_' + t.replace(/^bearer[_\s]/i, '');
     return `Bearer_${t}`;
   }
 
-  // ===== chamadas ao PROXY =====
   async function exchangeAccessToken(proxyBase, propertyToken) {
     const res = await fetch(`${proxyBase}/accessToken`, {
       method: 'POST',
       headers: { Authorization: asBearerUnderscore(propertyToken) }
     });
-    if (!res.ok) return null; // 401 → sem exchange
+    if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
     return data.accessToken || data.token || data.access_token || data.raw || null;
   }
 
-  async function postConfiguration(proxyBase, accessToken, payload) {
-    const res = await fetch(`${proxyBase}/configuration`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accessToken, payload })
+  // Monta querystring a partir do JSON (sem form/formId); objetos/arrays são stringificados
+  function buildQueryFromJson(obj) {
+    const q = new URLSearchParams();
+    Object.entries(obj || {}).forEach(([k,v]) => {
+      if (k === 'form' || k === 'formId') return; // nunca mandar isso
+      if (v === undefined || v === null) return;
+      if (Array.isArray(v)) v.forEach(item => q.append(k, String(item)));
+      else if (typeof v === 'object') q.append(k, JSON.stringify(v));
+      else q.append(k, String(v));
     });
+    return q.toString();
+  }
+
+  async function getConfiguration(proxyBase, accessToken, queryObj) {
+    const qs = buildQueryFromJson(queryObj);
+    const url = `${proxyBase}/configuration?accessToken=${encodeURIComponent(accessToken)}${qs ? `&${qs}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) {
       const t = await res.text().catch(()=> '');
       throw new Error(`configuration falhou: ${res.status} ${t}`);
@@ -181,7 +188,6 @@
     return res.json().catch(() => ({}));
   }
 
-  // ===== encontrar o form-alvo na resposta =====
   function findFormNode(root, targetId) {
     const seen = new WeakSet();
     function walk(node) {
@@ -211,10 +217,8 @@
 
   function buildInput(field) {
     const wrap = document.createElement('div');
-    wrap.style.display = 'flex';
-    wrap.style.gap = '8px';
-    wrap.style.alignItems = 'center';
-    wrap.style.margin = '12px 0';
+    wrap.style.display = 'flex'; wrap.style.gap = '8px';
+    wrap.style.alignItems = 'center'; wrap.style.margin = '12px 0';
 
     const label = document.createElement('label');
     const id = `f_${field.id || field.name || Math.random().toString(36).slice(2)}`;
@@ -252,9 +256,7 @@
     input.id = id;
     input.dataset.fieldId = field.id || field.name || id;
     if (field.required) input.required = true;
-
-    input.style.padding = '8px';
-    input.style.minWidth = '260px';
+    input.style.padding = '8px'; input.style.minWidth = '260px';
 
     wrap.appendChild(label);
     wrap.appendChild(input);
@@ -272,17 +274,17 @@
     return answers;
   }
 
-  // ===== fluxo =====
   $('da-start').addEventListener('click', async () => {
     log('Iniciando fluxo...');
     const proxyBase = $('da-proxy').value.trim();
     const propertyToken = $('da-property-token').value.trim();
     const targetFormId = $('da-form-id').value.trim();
 
-    let payloadText = $('da-config-json').value.replace('<?URL?>', location.href);
-    let payload;
-    try { payload = JSON.parse(payloadText); }
-    catch(e) { log('JSON do payload inválido.', 'err'); return; }
+    // Lê o JSON de query e injeta a URL atual
+    let queryJson = $('da-config-query').value.replace('<?URL?>', location.href);
+    let queryObj;
+    try { queryObj = JSON.parse(queryJson); }
+    catch(e) { log('JSON da query inválido.', 'err'); return; }
 
     if (!proxyBase || !propertyToken) {
       log('Preencha Proxy e Property token.', 'err');
@@ -292,16 +294,15 @@
     try {
       log('Trocando property token por accessToken...');
       let accessToken = await exchangeAccessToken(proxyBase, propertyToken);
-
       if (!accessToken) {
         log('Exchange 401/sem token — usando o property token como accessToken (fallback).');
-        accessToken = propertyToken; // tentativa de seguir mesmo assim
+        accessToken = propertyToken;
       } else {
         log('Access token OK.', 'ok');
       }
 
-      log('Chamando POST /configuration com payload...');
-      const conf = await postConfiguration(proxyBase, accessToken, payload);
+      log('Fazendo GET /configuration com query params...');
+      const conf = await getConfiguration(proxyBase, accessToken, queryObj);
       log(conf);
 
       const node = findFormNode(conf, targetFormId);
@@ -329,8 +330,8 @@
           const out = await sendFeedback(proxyBase, accessToken, {
             formId: Number(targetFormId),
             responses,
-            channel: payload.channel || 'anywhere',
-            locale: payload.locale || 'pt-BR'
+            channel: queryObj.channel || 'anywhere',
+            locale: queryObj.locale || 'pt-BR'
           });
           log('Feedback enviado.', 'ok');
           log(out);
@@ -491,6 +492,7 @@
 </body>
 
 </html>
+
 
 
 
