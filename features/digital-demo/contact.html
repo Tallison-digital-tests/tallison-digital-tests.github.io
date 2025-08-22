@@ -21,8 +21,33 @@
 
         <script type="text/javascript" src="https://resources.digital-cloud-west.medallia.com/wdcwest/23517/onsite/embed.js" async></script>
         <script src="js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+
+<script>
+(function setGeoCookie(){
+  const COOKIE_NAME = 'geoloc';
+  const MAX_AGE = 60 * 60 * 24 * 7; // 7 dias
+  function setCookie(val) {
+    try {
+      document.cookie = `${COOKIE_NAME}=${encodeURIComponent(val)}; path=/; max-age=${MAX_AGE}; SameSite=Lax; Secure`;
+    } catch (e) {}
+  }
+  if (!('geolocation' in navigator)) { setCookie('unsupported'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      setCookie(`${latitude.toFixed(6)},${longitude.toFixed(6)}`);
+    },
+    err => { setCookie('denied'); },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+  );
+})();
+</script>        
+        
+        
     </head>
 
+
+    
 <body>
     <div class="header">
         <div class="container">
@@ -421,19 +446,23 @@
                                                           $('da-x').onclick = close;
                                                           $('da-cancel').onclick = close;
                                                     
-                                                          $('da-send').onclick = async () => {
-                                                            msgEl.textContent = 'Enviando...';
-                                                            try {
-                                                              const payload = collectFeedbackPayload(formNode, resolvedCP);
-                                                              log('Payload feedback:'); log(payload);
-                                                              const out = await sendFeedback(proxyBase, accessToken, payload);
-                                                              log('Feedback enviado.', 'ok'); log(out);
-                                                              msgEl.style.color='#0a7a2f'; msgEl.textContent='Feedback enviado com sucesso!';
-                                                            } catch (e) {
-                                                              msgEl.style.color='#b00020'; msgEl.textContent='Falha ao enviar feedback — veja o log.';
-                                                              log(e.message || e, 'err');
-                                                            }
-                                                          };
+                                                                $('da-send').onclick = async () => {
+                                                                  msgEl.textContent = 'Enviando...';
+                                                                  try {
+                                                                    const payload = collectFeedbackPayload(formNode, resolvedCP);
+                                                                    log('Payload feedback:'); log(payload);
+                                                                    const out = await sendFeedback(proxyBase, accessToken, payload);
+                                                                    log('Feedback enviado.', 'ok'); log(out);
+                                                                    msgEl.style.color='#0a7a2f';
+                                                                    msgEl.textContent='Feedback enviado com sucesso!';
+                                                                
+                                                                    close(); // 👈 fecha o popup após enviar com sucesso
+                                                                  } catch (e) {
+                                                                    msgEl.style.color='#b00020';
+                                                                    msgEl.textContent='Falha ao enviar feedback — veja o log.';
+                                                                    log(e.message || e, 'err');
+                                                                  }
+                                                                };
                                                     
                                                         } catch (e) { log(e.message || e, 'err'); }
                                                       });
@@ -587,6 +616,7 @@
 </body>
 
 </html>
+
 
 
 
