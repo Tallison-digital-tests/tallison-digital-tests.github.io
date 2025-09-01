@@ -30,10 +30,10 @@
   </style>
 </head>
 <body>
-  <button id="feedbackButton" onclick="KAMPYLE_ONSITE_SDK.showForm(25315);">
-    Share Your Feedback
-  </button>
-<script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/216189/onsite/embed.js" async></script>
+<button id="feedbackButton" onclick="window.location.href='/save&exit2.html';">
+  Share Your Feedback
+</button>
+<script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/571644/onsite/embed.js" async></script>
 
   <script>
 
