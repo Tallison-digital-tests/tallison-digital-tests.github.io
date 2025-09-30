@@ -5,15 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Feedback Form</title>
   <style>
-    body {
-      margin:0; padding:0; display:flex; justify-content:center; align-items:center;
-      height:100vh; background-color:#50d9ff;
-    }
-    #feedbackButton {
-      display:none; background-color:#555; color:#fff; border:none; padding:10px 20px;
-      font-size:16px; cursor:pointer; border-radius:5px;
-    }
-    #feedbackButton:hover { background-color:#444; }
+    body { margin:0; padding:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#50d9ff; }
+    #feedbackButton { display:none; background:#555; color:#fff; border:none; padding:10px 20px; font-size:16px; cursor:pointer; border-radius:5px; }
+    #feedbackButton:hover { background:#444; }
   </style>
 </head>
 <body>
@@ -23,23 +17,28 @@
   <script>
     function onsiteLoaded() {
       var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm(31894);
-      if (available === true) {
-        document.getElementById("feedbackButton").style.display = "block";
-      }
+      if (available === true) document.getElementById("feedbackButton").style.display = "block";
     }
     if (window.KAMPYLE_ONSITE_SDK) { onsiteLoaded(); }
     else { window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); }
 
-    document.getElementById("feedbackButton").addEventListener("click", function () {
-      // Guarda a flag no window.name (persiste entre navegações na MESMA aba)
+    function setNamePayload(key, value) {
       try {
         var payload = {};
         try { payload = JSON.parse(window.name || "{}"); } catch(e) {}
-        payload.ezq_survey_saveTriggered = true;
+        payload[key] = value;
         window.name = JSON.stringify(payload);
-      } catch (e) { /* ignore */ }
+      } catch(e) {}
+    }
 
-      // Vai para a próxima página (sem querystring)
+    document.getElementById("feedbackButton").addEventListener("click", function () {
+      // Passo 2: carregar a variável no próprio window da Página 1
+      window.ezq_survey_saveTriggered = true;
+
+      // Persistir para a transição (sem cookie/URL)
+      setNamePayload("ezq_survey_saveTriggered", true);
+
+      // Passo 3: direcionar para a Página 2
       window.location.href = "/save&exit2.html";
     });
   </script>
