@@ -16,29 +16,22 @@
   <script src="https://resources.digital-cloud.medallia.eu/wdceu/571644/onsite/embed.js" async></script>
   <script>
     function onsiteLoaded() {
-      var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm(31894);
-      if (available === true) document.getElementById("feedbackButton").style.display = "block";
+      var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm && KAMPYLE_ONSITE_SDK.loadForm(31894);
+      // Exiba o botão como preferir; abaixo, exibindo sempre:
+      document.getElementById("feedbackButton").style.display = "block";
     }
     if (window.KAMPYLE_ONSITE_SDK) { onsiteLoaded(); }
     else { window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); }
 
-    function setNamePayload(key, value) {
-      try {
-        var payload = {};
-        try { payload = JSON.parse(window.name || "{}"); } catch(e) {}
-        payload[key] = value;
-        window.name = JSON.stringify(payload);
-      } catch(e) {}
-    }
-
     document.getElementById("feedbackButton").addEventListener("click", function () {
-      // Passo 2: carregar a variável no próprio window da Página 1
-      window.ezq_survey_saveTriggered = true;
+      try {
+        // 👉 Passo 2: grava na “local session” (sessionStorage) — sem cookies/URL
+        sessionStorage.setItem("ezq_survey_saveTriggered", "true");
+        // (opcional, só pra inspeção no DevTools desta página)
+        window.ezq_survey_saveTriggered = true;
+      } catch (e) {}
 
-      // Persistir para a transição (sem cookie/URL)
-      setNamePayload("ezq_survey_saveTriggered", true);
-
-      // Passo 3: direcionar para a Página 2
+      // 👉 Passo 3: navega para a Página 2
       window.location.href = "/save&exit2.html";
     });
   </script>
