@@ -1,59 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Feedback Form</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #50d9ff; /* Fundo cinza */
+      margin:0; padding:0; display:flex; justify-content:center; align-items:center;
+      height:100vh; background-color:#50d9ff;
     }
     #feedbackButton {
-      display: none; /* Inicialmente escondido */
-      background-color: #555; /* Cinza escuro */
-      color: #fff; /* Texto branco */
-      border: none;
-      padding: 10px 20px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 5px;
+      display:none; background-color:#555; color:#fff; border:none; padding:10px 20px;
+      font-size:16px; cursor:pointer; border-radius:5px;
     }
-    #feedbackButton:hover {
-      background-color: #444; /* Cinza mais escuro no hover */
-    }
+    #feedbackButton:hover { background-color:#444; }
   </style>
 </head>
 <body>
-<button id="feedbackButton" onclick="window.location.href='/save&exit2.html';">
-  Share Your Feedback
-</button>
-<script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/571644/onsite/embed.js" async></script>
+  <button id="feedbackButton">Share Your Feedback</button>
 
+  <script src="https://resources.digital-cloud.medallia.eu/wdceu/571644/onsite/embed.js" async></script>
   <script>
-
-    var test = true;
-    // Verifica se o código Digital está carregado
-    if (window.KAMPYLE_ONSITE_SDK) {
-      onsiteLoaded();
-    } else {
-      // Escuta o evento de carregamento do código Digital
-      window.addEventListener('neb_OnsiteLoaded', onsiteLoaded);
-    }
-
     function onsiteLoaded() {
-      // Tenta carregar o formulário
-      var neb_status = KAMPYLE_ONSITE_SDK.loadForm(31894);
-      if (neb_status === true) {
-        // Exibe o botão se o formulário estiver disponível
+      var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm(31894);
+      if (available === true) {
         document.getElementById("feedbackButton").style.display = "block";
       }
     }
+    if (window.KAMPYLE_ONSITE_SDK) { onsiteLoaded(); }
+    else { window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); }
+
+    document.getElementById("feedbackButton").addEventListener("click", function () {
+      // Guarda a flag no window.name (persiste entre navegações na MESMA aba)
+      try {
+        var payload = {};
+        try { payload = JSON.parse(window.name || "{}"); } catch(e) {}
+        payload.ezq_survey_saveTriggered = true;
+        window.name = JSON.stringify(payload);
+      } catch (e) { /* ignore */ }
+
+      // Vai para a próxima página (sem querystring)
+      window.location.href = "/save&exit2.html";
+    });
   </script>
 </body>
 </html>
