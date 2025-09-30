@@ -5,15 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Feedback Form</title>
   <style>
-    body {
-      margin:0; padding:0; display:flex; justify-content:center; align-items:center;
-      height:100vh; background-color:#50d9ff; gap:12px; flex-direction:column;
-    }
-    #backButton, #openSurveyButton {
-      display:none; background-color:#555; color:#fff; border:none; padding:10px 20px;
-      font-size:16px; cursor:pointer; border-radius:5px;
-    }
-    #backButton:hover, #openSurveyButton:hover { background-color:#444; }
+    body { margin:0; padding:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#50d9ff; gap:12px; flex-direction:column; }
+    #backButton, #openSurveyButton { display:none; background:#555; color:#fff; border:none; padding:10px 20px; font-size:16px; cursor:pointer; border-radius:5px; }
+    #backButton:hover, #openSurveyButton:hover { background:#444; }
   </style>
 </head>
 <body>
@@ -21,18 +15,18 @@
   <button id="openSurveyButton">Open Survey</button>
 
   <script>
-    // ✅ Recupera do window.name e expõe em window.ezq_survey_saveTriggered
-    (function hydrateFlagFromWindowName(){
+    // Passo 4: hidratar a flag na Página 2 e expor em window.ezq_survey_saveTriggered
+    (function hydrateFromWindowName(){
       try {
         var payload = {};
         try { payload = JSON.parse(window.name || "{}"); } catch(e) {}
         if (payload && payload.ezq_survey_saveTriggered === true) {
           window.ezq_survey_saveTriggered = true;
-          // opcional: limpa para evitar reabrir em refresh (descomente se quiser)
+          // opcional: limpar se quiser evitar reabertura em refresh
           // delete payload.ezq_survey_saveTriggered;
           // window.name = JSON.stringify(payload);
         }
-      } catch (e) { /* ignore */ }
+      } catch (e) {}
     })();
   </script>
 
@@ -40,9 +34,7 @@
   <script>
     function showButtonsAvailability(isAvailable) {
       document.getElementById("backButton").style.display = "inline-block";
-      if (isAvailable === true) {
-        document.getElementById("openSurveyButton").style.display = "inline-block";
-      }
+      if (isAvailable === true) document.getElementById("openSurveyButton").style.display = "inline-block";
     }
 
     function tryOpenSurveyIfNeeded() {
@@ -54,20 +46,15 @@
           KAMPYLE_ONSITE_SDK.displayForm(31894);
         } else if (typeof KAMPYLE_ONSITE_SDK.showForm === 'function') {
           KAMPYLE_ONSITE_SDK.showForm(31894);
-        } // senão, o loadForm acima já preparou o form (depende do tenant)
+        }
       }
     }
 
-    // Botão manual
     document.getElementById("openSurveyButton").addEventListener("click", function () {
       if (!window.KAMPYLE_ONSITE_SDK) return;
-      if (typeof KAMPYLE_ONSITE_SDK.displayForm === 'function') {
-        KAMPYLE_ONSITE_SDK.displayForm(31894);
-      } else if (typeof KAMPYLE_ONSITE_SDK.showForm === 'function') {
-        KAMPYLE_ONSITE_SDK.showForm(31894);
-      } else {
-        KAMPYLE_ONSITE_SDK.loadForm(31894);
-      }
+      if (typeof KAMPYLE_ONSITE_SDK.displayForm === 'function') KAMPYLE_ONSITE_SDK.displayForm(31894);
+      else if (typeof KAMPYLE_ONSITE_SDK.showForm === 'function') KAMPYLE_ONSITE_SDK.showForm(31894);
+      else KAMPYLE_ONSITE_SDK.loadForm(31894);
     });
 
     if (window.KAMPYLE_ONSITE_SDK) { tryOpenSurveyIfNeeded(); }
