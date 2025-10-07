@@ -11,24 +11,11 @@
   </style>
 </head>
 <body>
-  <button id="feedbackButton">Share Your Feedback</button>
+  <button id="feedbackButton" onclick="KAMPYLE_ONSITE_SDK.showForm(33404);">
+    Share Your Feedback
+  </button>
 
   <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/722972/onsite/embed.js" async></script>
-    function onsiteLoaded() {
-      var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm && KAMPYLE_ONSITE_SDK.loadForm(33404);
-      // Exiba o botão como preferir; abaixo, exibindo sempre:
-      document.getElementById("feedbackButton").style.display = "block";
-    }
-    if (window.KAMPYLE_ONSITE_SDK) { onsiteLoaded(); }
-    else { window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); }
-
-    document.getElementById("feedbackButton").addEventListener("click", function () {
-      try {
-        // 👉 Passo 2: grava na “local session” (sessionStorage) — sem cookies/URL
-        sessionStorage.setItem("ezq_survey_saveTriggered", "true");
-        // (opcional, só pra inspeção no DevTools desta página)
-        window.ezq_survey_saveTriggered = true;
-      } catch (e) {}
 
   </script>
 </body>
