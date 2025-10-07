@@ -17,6 +17,25 @@
 
   <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/722972/onsite/embed.js" async></script>
 
+    <script>
+
+    var test = true;
+    // Verifica se o código Digital está carregado
+    if (window.KAMPYLE_ONSITE_SDK) {
+      onsiteLoaded();
+    } else {
+      // Escuta o evento de carregamento do código Digital
+      window.addEventListener('neb_OnsiteLoaded', onsiteLoaded);
+    }
+
+    function onsiteLoaded() {
+      // Tenta carregar o formulário
+      var neb_status = KAMPYLE_ONSITE_SDK.loadForm(33404);
+      if (neb_status === true) {
+        // Exibe o botão se o formulário estiver disponível
+        document.getElementById("feedbackButton").style.display = "block";
+      }
+    }
   </script>
 </body>
 </html>
