@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Feedback Form</title>
+  <style>
+    body { margin:0; padding:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#50d9ff; }
+    #feedbackButton { display:none; background:#555; color:#fff; border:none; padding:10px 20px; font-size:16px; cursor:pointer; border-radius:5px; }
+    #feedbackButton:hover { background:#444; }
+  </style>
+</head>
+<body>
+  <button id="feedbackButton">Share Your Feedback</button>
+
+  <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/722972/onsite/embed.js" async></script>
+    function onsiteLoaded() {
+      var available = window.KAMPYLE_ONSITE_SDK && KAMPYLE_ONSITE_SDK.loadForm && KAMPYLE_ONSITE_SDK.loadForm(33404);
+      // Exiba o botão como preferir; abaixo, exibindo sempre:
+      document.getElementById("feedbackButton").style.display = "block";
+    }
+    if (window.KAMPYLE_ONSITE_SDK) { onsiteLoaded(); }
+    else { window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); }
+
+    document.getElementById("feedbackButton").addEventListener("click", function () {
+      try {
+        // 👉 Passo 2: grava na “local session” (sessionStorage) — sem cookies/URL
+        sessionStorage.setItem("ezq_survey_saveTriggered", "true");
+        // (opcional, só pra inspeção no DevTools desta página)
+        window.ezq_survey_saveTriggered = true;
+      } catch (e) {}
+
+  </script>
+</body>
+</html>
