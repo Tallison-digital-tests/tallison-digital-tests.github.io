@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Forms – Quick Launcher</title>
+  <style>
+    :root { --bg:#50d9ff; --btn:#2f2f2f; --btnHover:#1f1f1f; --txt:#fff; }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body {
+      margin: 0; padding: 24px; min-height: 100vh;
+      background: var(--bg); display: grid; place-items: center;
+    }
+    .wrap { width: min(1100px, 100%); }
+    h1 { margin: 0 0 16px; font-size: 18px; font-weight: 700; text-align: center; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    button.form-btn {
+      display: none; /* só aparece quando o form está disponível */
+      width: 100%; padding: 12px 14px;
+      background: var(--btn); color: var(--txt);
+      border: 0; border-radius: 8px; cursor: pointer; text-align: left;
+    }
+    button.form-btn:hover { background: var(--btnHover); }
+    .id { opacity: .7; font-size: 12px; display:block; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Launch a Form</h1>
+    <div id="btnGrid" class="grid"></div>
+  </div>
+
+  <!-- Medallia Digital Anywhere Onsite -->
+  <script src="https://resources.digital-cloud.medallia.eu/wdceu/217941/onsite/embed.js" async></script>
+
+  <script>
+    // === Lista dos forms (nome + ID) ===
+    const FORMS = [
+      { name: "MyAccount - VIEWING BILLING HISTORY - MY", id: 33486 },
+      { name: "MyAccount - UPDATE CONTACT DETAILS - MY", id: 33484 },
+      { name: "MyAccount - UPDATE CREDIT CARD - MY", id: 33481 },
+      { name: "MyAccount - VIEW BILLING HISTORY - SG", id: 33480 },
+      { name: "MyAccount - UPDATE CONTACT DETAILS - SG", id: 33479 },
+      { name: "MyAccount - UPDATE CREDIT CARD - SG", id: 33478 },
+      { name: "MyAccount - UPDATE CONTACT DETAILS - TH", id: 33477 },
+      { name: "MyAccount - UPDATE CONTACT DETAILS - CN", id: 33474 },
+      { name: "MyAccount - VIEWING BILLING HISTORY - CN", id: 33475 },
+      { name: "MyAccount - UPDATE CREDIT CARD - CN", id: 33460 },
+      { name: "MyAccount - CLAIM SUBMISSION - MY", id: 33042 },
+      { name: "MyAccount - CLAIM SUBMISSION - TH", id: 33043 },
+      { name: "MyAccount - CLAIM SUBMISSION - SG", id: 32915 },
+      { name: "MyAccount - CLAIM SUBMISSION - CN", id: 33041 },
+    ];
+
+    const grid = document.getElementById("btnGrid");
+
+    // cria todos os botões (ficam escondidos até loadForm=true)
+    FORMS.forEach(({ name, id }) => {
+      const btn = document.createElement("button");
+      btn.className = "form-btn";
+      btn.id = "btn_" + id;
+      btn.innerHTML = `${name} <span class="id">Form ID: ${id}</span>`;
+      btn.addEventListener("click", () => KAMPYLE_ONSITE_SDK.showForm(id));
+      grid.appendChild(btn);
+    });
+
+    // quando o SDK carregar, tenta habilitar cada botão
+    function onsiteLoaded() {
+      try {
+        FORMS.forEach(({ id }) => {
+          const ok = KAMPYLE_ONSITE_SDK.loadForm(id); // retorna true se disponível
+          if (ok === true) {
+            const b = document.getElementById("btn_" + id);
+            if (b) b.style.display = "block";
+          }
+        });
+      } catch (e) {
+        console.error("Erro ao inicializar os forms:", e);
+      }
+    }
+
+    // já está disponível?
+    if (window.KAMPYLE_ONSITE_SDK) {
+      onsiteLoaded();
+    } else {
+      // espera o evento padrão do Digital Anywhere
+      window.addEventListener("neb_OnsiteLoaded", onsiteLoaded);
+    }
+  </script>
+</body>
+</html>
