@@ -166,215 +166,230 @@
   <!-- Medallia Digital Anywhere Onsite -->
   <script src="https://resources.digital-cloud.medallia.eu/wdceu/217941/onsite/embed.js" async></script>
 
-  <script>
-    // =======================
-    // CONFIG – keys & mapping
-    // =======================
-    const KEYS = {
-      fs_uid: "fs_uid",                 // Session Storage key
-      cs_auth: "CS_AUTH",               // Session Storage key for auth blob
-      lossType: "lossType",             // Cookie
-      claimNum: "claimNum",             // Cookie (nullable)
-      enableContactUpdateSurvey: "enableContactUpdateSurvey", // Cookie
-      countryVar: "country",            // derived from URL for your filter
-      langVar: "lang"                   // derived from URL (portal segment)
-    };
+<script>
+  // =======================
+  // CONFIG – keys & mapping
+  // =======================
+  const KEYS = {
+    fs_uid: "fs_uid",
+    cs_auth: "CS_AUTH",
+    lossType: "lossType",
+    claimNum: "claimNum",
+    enableContactUpdateSurvey: "enableContactUpdateSurvey",
+    countryVar: "country",
+    langVar: "lang"
+  };
 
-    // CSP Identifier (exemplo de mapeamento)
-    const CSP_MAP = {
-      "apac.myaccount.chubb.com": "csp-prod",
-      "apac.myaccount-uat.chubb.com": "csp-uat",
-      "apac.myaccount-sit.chubb.com": "csp-sit"
-    };
+  const CSP_MAP = {
+    "apac.myaccount.chubb.com": "csp-prod",
+    "apac.myaccount-uat.chubb.com": "csp-uat",
+    "apac.myaccount-sit.chubb.com": "csp-sit",
+    locationHostFallback: "csp-local"
+  };
 
-    // Locales por país
-    const LOCALES = {
-      sg: ["en-SG"],
-      hk: ["en-HK","cn-HK"],
-      th: ["en-TH","th-TH"],
-      my: ["en-MY","ms-MY"]
-    };
+  const LOCALES = {
+    sg: ["en-SG"],
+    hk: ["en-HK","cn-HK"],
+    th: ["en-TH","th-TH"],
+    my: ["en-MY","ms-MY"]
+  };
 
-    // =======================
-    // Forms list (unchanged)
-    // =======================
-    const FORMS = [
-      { name: "MyAccount - VIEWING BILLING HISTORY - MY", id: 33486 },
-      { name: "MyAccount - UPDATE CONTACT DETAILS - MY", id: 33484 },
-      { name: "MyAccount - UPDATE CREDIT CARD - MY", id: 33481 },
-      { name: "MyAccount - VIEW BILLING HISTORY - SG", id: 33480 },
-      { name: "MyAccount - UPDATE CONTACT DETAILS - SG", id: 33479 },
-      { name: "MyAccount - UPDATE CREDIT CARD - SG", id: 33478 },
-      { name: "MyAccount - UPDATE CONTACT DETAILS - TH", id: 33477 },
-      { name: "MyAccount - UPDATE CONTACT DETAILS - CN", id: 33474 },
-      { name: "MyAccount - VIEWING BILLING HISTORY - CN", id: 33475 },
-      { name: "MyAccount - UPDATE CREDIT CARD - CN", id: 33460 },
-      { name: "MyAccount - CLAIM SUBMISSION - MY", id: 33042 },
-      { name: "MyAccount - CLAIM SUBMISSION - TH", id: 33043 },
-      { name: "MyAccount - CLAIM SUBMISSION - SG", id: 32915 },
-      { name: "MyAccount - CLAIM SUBMISSION - CN", id: 33041 }
-    ];
+  const FORMS = [
+    { name: "MyAccount - VIEWING BILLING HISTORY - MY", id: 33486 },
+    { name: "MyAccount - UPDATE CONTACT DETAILS - MY", id: 33484 },
+    { name: "MyAccount - UPDATE CREDIT CARD - MY", id: 33481 },
+    { name: "MyAccount - VIEW BILLING HISTORY - SG", id: 33480 },
+    { name: "MyAccount - UPDATE CONTACT DETAILS - SG", id: 33479 },
+    { name: "MyAccount - UPDATE CREDIT CARD - SG", id: 33478 },
+    { name: "MyAccount - UPDATE CONTACT DETAILS - TH", id: 33477 },
+    { name: "MyAccount - UPDATE CONTACT DETAILS - CN", id: 33474 },
+    { name: "MyAccount - VIEWING BILLING HISTORY - CN", id: 33475 },
+    { name: "MyAccount - UPDATE CREDIT CARD - CN", id: 33460 },
+    { name: "MyAccount - CLAIM SUBMISSION - MY", id: 33042 },
+    { name: "MyAccount - CLAIM SUBMISSION - TH", id: 33043 },
+    { name: "MyAccount - CLAIM SUBMISSION - SG", id: 32915 },
+    { name: "MyAccount - CLAIM SUBMISSION - CN", id: 33041 }
+  ];
 
-    // UI refs
-    const grid = document.getElementById("btnGrid");
-    const envSel = document.getElementById("envSel");
-    const ctySel = document.getElementById("ctySel");
-    const locSel = document.getElementById("locSel");
-    const routeSel = document.getElementById("routeSel");
-    const policyInput = document.getElementById("policyInput");
-    const fnolInput = document.getElementById("fnolInput");
-    const upsParam = document.getElementById("upsParam");
-    const lossTypeInput = document.getElementById("lossTypeInput");
-    const claimNumInput = document.getElementById("claimNumInput");
-    const enableCUSel = document.getElementById("enableCUSel");
-    const authSel = document.getElementById("authSel");
-    const fsuidInput = document.getElementById("fsuidInput");
-    const urlOut = document.getElementById("urlOut");
-    const varsOut = document.getElementById("varsOut");
-    const applyBtn = document.getElementById("applyBtn");
-    const clearBtn = document.getElementById("clearBtn");
+  // ===== UI refs (elementos já existentes no seu HTML) =====
+  const grid = document.getElementById("btnGrid");
+  const envSel = document.getElementById("envSel");
+  const ctySel = document.getElementById("ctySel");
+  const locSel = document.getElementById("locSel");
+  const routeSel = document.getElementById("routeSel");
+  const policyInput = document.getElementById("policyInput");
+  const fnolInput = document.getElementById("fnolInput");
+  const upsParam = document.getElementById("upsParam");
+  const lossTypeInput = document.getElementById("lossTypeInput");
+  const claimNumInput = document.getElementById("claimNumInput");
+  const enableCUSel = document.getElementById("enableCUSel");
+  const authSel = document.getElementById("authSel");
+  const fsuidInput = document.getElementById("fsuidInput");
+  const urlOut = document.getElementById("urlOut");
+  const varsOut = document.getElementById("varsOut");
 
-    // Populate locale options per country
-    function refreshLocales() {
-      const c = ctySel.value;
-      const opts = LOCALES[c] || [];
-      locSel.innerHTML = "";
-      opts.forEach(l => {
-        const o = document.createElement("option");
-        o.value = l; o.textContent = l;
-        locSel.appendChild(o);
-      });
-    }
-    ctySel.addEventListener("change", refreshLocales);
-    refreshLocales();
-
-    // Utils
-    function setCookie(name, value) {
-      if (value === "") { document.cookie = `${name}=; Max-Age=0; path=/`; return; }
-      document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
-    }
-    function clearCookie(name) { document.cookie = `${name}=; Max-Age=0; path=/`; }
-    function randomUID() {
-      return Math.random().toString(36).slice(2) + Date.now().toString(36);
-    }
-
-    // Build hostname from env
-    function hostnameFor(env) {
-      if (env === "uat") return "apac.myaccount-uat.chubb.com";
-      if (env === "sit") return "apac.myaccount-sit.chubb.com";
-      return "apac.myaccount.chubb.com";
-    }
-
-    // Build full URL
-    function buildURL() {
-      const host = hostnameFor(envSel.value);
-      const country = ctySel.value;          // sg/hk/th/my
-      const locale = locSel.value;           // ex: en-SG, cn-HK...
-      const route = routeSel.value;          // claim-success, update-payment-success...
-      const base = `https://${host}/myaccount/${country}/default/default/default/${locale}/${route}`;
-
-      const params = new URLSearchParams();
-      if (policyInput.value) params.set("policyNumber", policyInput.value);
-      if (fnolInput.value) params.set("fnolId", fnolInput.value);
-      if (upsParam.value && route === "update-payment-success") {
-        params.set("update-payment-success", upsParam.value);
-      }
-      const qs = params.toString();
-      return qs ? `${base}?${qs}` : base;
-    }
-
-    // Parse & preview variables that DA deve capturar
-    function previewVars(urlStr) {
-      const u = new URL(urlStr);
-      const segs = u.pathname.split("/").filter(Boolean);
-      // expected: ["myaccount", "{cty}", "default","default","default","{loc}","{route}"]
-      const country = segs[1] || "";
-      const locale = segs[6] || "";
-      const route = segs[7] || "";
-      const vars = {
-        csp_id: CSP_MAP[u.host] || "unknown",
-        country,
-        locale,
-        route,
-        params: Object.fromEntries(u.searchParams.entries()),
-        cookies: document.cookie,
-        sessionStorage: Object.fromEntries(Object.entries(sessionStorage))
-      };
-      varsOut.textContent = JSON.stringify(vars, null, 2);
-    }
-
-    // Apply Scenario (writes URL, storage, cookies)
-    applyBtn.addEventListener("click", () => {
-      // Session Storage
-      const uid = fsuidInput.value || randomUID();
-      sessionStorage.setItem(KEYS.fs_uid, uid);
-
-      const auth = (authSel.value === "auth");
-      sessionStorage.setItem(KEYS.cs_auth, JSON.stringify({ isLoggedIn: auth }));
-
-      // Cookies (lossType, claimNum, enableContactUpdateSurvey)
-      setCookie(KEYS.lossType, lossTypeInput.value);
-      if (claimNumInput.value) setCookie(KEYS.claimNum, claimNumInput.value); else clearCookie(KEYS.claimNum);
-      if (enableCUSel.value) setCookie(KEYS.enableContactUpdateSurvey, enableCUSel.value); else clearCookie(KEYS.enableContactUpdateSurvey);
-
-      // URL
-      const url = buildURL();
-      history.pushState({}, "", url);
-      urlOut.textContent = location.href;
-      previewVars(location.href);
-
-      // Country/lang quick copies in Session Storage (if você quiser ler como filter)
-      const segs = location.pathname.split("/").filter(Boolean);
-      sessionStorage.setItem(KEYS.countryVar, segs[1] || "");
-      sessionStorage.setItem(KEYS.langVar, segs[6] || "");
-
-      // Se o SDK já estiver pronto, podemos tentar recarregar a disponibilidade:
-      if (window.KAMPYLE_ONSITE_SDK && typeof KAMPYLE_ONSITE_SDK.loadForm === "function") {
-        revealAvailableForms();
-      }
+  // ==== pequenos utilitários ====
+  function refreshLocales() {
+    const c = ctySel.value;
+    const opts = LOCALES[c] || [];
+    locSel.innerHTML = "";
+    opts.forEach(l => {
+      const o = document.createElement("option");
+      o.value = l; o.textContent = l;
+      locSel.appendChild(o);
     });
+  }
+  ctySel?.addEventListener("change", refreshLocales);
+  refreshLocales();
 
-    clearBtn.addEventListener("click", () => {
-      // Clear relevant cookies & storage
-      [KEYS.lossType, KEYS.claimNum, KEYS.enableContactUpdateSurvey].forEach(clearCookie);
-      [KEYS.fs_uid, KEYS.cs_auth, KEYS.countryVar, KEYS.langVar].forEach(k => sessionStorage.removeItem(k));
-      varsOut.textContent = "{}";
-    });
+  function setCookie(name, value) {
+    if (!value) { document.cookie = `${name}=; Max-Age=0; path=/`; return; }
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`;
+  }
+  function clearCookie(name) { document.cookie = `${name}=; Max-Age=0; path=/`; }
+  function randomUID() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
-    // Create all form buttons (hidden until available)
-    FORMS.forEach(({ name, id }) => {
-      const btn = document.createElement("button");
-      btn.className = "form-btn";
-      btn.id = "btn_" + id;
-      btn.innerHTML = `${name} <span class="id">Form ID: ${id}</span>`;
-      btn.addEventListener("click", () => {
-        try { KAMPYLE_ONSITE_SDK.showForm(id); }
-        catch (e) { console.error("showForm error", e); }
-      });
-      grid.appendChild(btn);
-    });
+  // ==== constrói apenas PATH relativo (mesma origem) ====
+  function buildRelativePath() {
+    const country = ctySel.value;       // sg/hk/th/my
+    const locale  = locSel.value;       // en-SG, cn-HK, ...
+    const route   = routeSel.value;     // claim-success, update-payment-success, ...
+    const base    = `/myaccount/${country}/default/default/default/${locale}/${route}`;
+    const params  = new URLSearchParams();
+    if (policyInput.value) params.set("policyNumber", policyInput.value);
+    if (fnolInput.value)   params.set("fnolId", fnolInput.value);
+    if (upsParam.value && route === "update-payment-success") {
+      params.set("update-payment-success", upsParam.value);
+    }
+    const qs = params.toString();
+    return qs ? `${base}?${qs}` : base;
+  }
 
-    function revealAvailableForms() {
+  // =========================
+  // updatePageView automágico
+  // =========================
+  function notifyDigital() {
+    const doUpdate = () => {
       try {
-        FORMS.forEach(({ id }) => {
-          const ok = KAMPYLE_ONSITE_SDK.loadForm(id); // true if available
-          const b = document.getElementById("btn_" + id);
-          if (b) b.style.display = ok ? "block" : "none";
-        });
-      } catch (e) {
-        console.error("Erro ao inicializar os forms:", e);
-      }
+        if (window.KAMPYLE_ONSITE_SDK?.updatePageView) {
+          window.KAMPYLE_ONSITE_SDK.updatePageView();
+        }
+      } catch (e) { console.warn("updatePageView falhou:", e); }
+    };
+    if (window.KAMPYLE_ONSITE_SDK?.updatePageView) doUpdate();
+    else {
+      const once = () => { window.removeEventListener("neb_OnsiteLoaded", once); doUpdate(); };
+      window.addEventListener("neb_OnsiteLoaded", once);
     }
+  }
 
-    function onsiteLoaded() {
-      revealAvailableForms();
-      // Update previews based on current URL
-      urlOut.textContent = location.href;
-      previewVars(location.href);
-    }
+  // =========
+  // DEBUG UI
+  // =========
+  const debugBox = document.createElement("label");
+  debugBox.style.display = "inline-flex"; debugBox.style.alignItems = "center"; debugBox.style.gap = "6px";
+  debugBox.innerHTML = `<input id="dbgAll" type="checkbox"/> <span class="muted">Debug: show all buttons (ignore availability)</span>`;
+  document.querySelector(".actions")?.appendChild(debugBox);
+  const dbgAll = document.getElementById("dbgAll");
 
-    if (window.KAMPYLE_ONSITE_SDK) onsiteLoaded();
-    else window.addEventListener("neb_OnsiteLoaded", onsiteLoaded);
-  </script>
+  function revealAvailableForms() {
+    try {
+      FORMS.forEach(({ id }) => {
+        const b = document.getElementById("btn_" + id);
+        if (!b) return;
+        if (dbgAll?.checked) { b.style.display = "block"; return; }
+        const ok = window.KAMPYLE_ONSITE_SDK?.loadForm ? window.KAMPYLE_ONSITE_SDK.loadForm(id) : false;
+        b.style.display = ok ? "block" : "none";
+      });
+    } catch (e) { console.error("Erro ao inicializar os forms:", e); }
+  }
+  dbgAll?.addEventListener("change", revealAvailableForms);
+
+  // =========
+  // Previews
+  // =========
+  function previewVars() {
+    const u = new URL(location.href);
+    const segs = u.pathname.split("/").filter(Boolean);
+    // ex esperado: ["myaccount","{cty}","default","default","default","{locale}","{route}"]
+    const country = segs[1] || "";
+    const locale  = segs[6] || "";
+    const route   = segs[7] || "";
+    const vars = {
+      csp_id: CSP_MAP[u.host] || CSP_MAP.locationHostFallback,
+      country, locale, route,
+      params: Object.fromEntries(u.searchParams.entries()),
+      cookies: document.cookie,
+      sessionStorage: Object.fromEntries(Object.entries(sessionStorage))
+    };
+    varsOut.textContent = JSON.stringify(vars, null, 2);
+  }
+
+  // ============================
+  // APPLY SCENARIO (principal)
+  // ============================
+  function applyScenario() {
+    // Session Storage
+    const uid = fsuidInput.value || randomUID();
+    sessionStorage.setItem(KEYS.fs_uid, uid);
+    const auth = (authSel.value === "auth");
+    sessionStorage.setItem(KEYS.cs_auth, JSON.stringify({ isLoggedIn: auth }));
+
+    // Cookies
+    setCookie(KEYS.lossType,               lossTypeInput.value || "");
+    if (claimNumInput.value) setCookie(KEYS.claimNum, claimNumInput.value); else clearCookie(KEYS.claimNum);
+    if (enableCUSel.value)   setCookie(KEYS.enableContactUpdateSurvey, enableCUSel.value); else clearCookie(KEYS.enableContactUpdateSurvey);
+
+    // Path relativo (mesma origem) — importante pro SDK enxergar /claim-success etc.
+    const rel = buildRelativePath();
+    history.pushState({}, "", rel);
+
+    // Opcional: guardar country/lang como filtros auxiliares
+    const segs = location.pathname.split("/").filter(Boolean);
+    sessionStorage.setItem(KEYS.countryVar, segs[1] || "");
+    sessionStorage.setItem(KEYS.langVar, segs[6] || "");
+
+    // Atualiza painéis e forms
+    document.getElementById("urlOut").textContent = location.href;
+    previewVars();
+
+    // 🔔 Dispara o updatePageView automaticamente
+    notifyDigital();
+
+    // Após o update, atualiza a disponibilidade dos forms
+    // (um pequeno atraso ajuda quando o SDK recalcula targeting)
+    setTimeout(revealAvailableForms, 200);
+  }
+
+  // Botões já existentes
+  document.getElementById("applyBtn")?.addEventListener("click", applyScenario);
+  document.getElementById("clearBtn")?.addEventListener("click", () => {
+    [KEYS.lossType, KEYS.claimNum, KEYS.enableContactUpdateSurvey].forEach(clearCookie);
+    [KEYS.fs_uid, KEYS.cs_auth, KEYS.countryVar, KEYS.langVar].forEach(k => sessionStorage.removeItem(k));
+    varsOut.textContent = "{}";
+  });
+
+  // Cria botões de forms
+  FORMS.forEach(({ name, id }) => {
+    const btn = document.createElement("button");
+    btn.className = "form-btn"; btn.id = "btn_" + id;
+    btn.innerHTML = `${name} <span class="id">Form ID: ${id}</span>`;
+    btn.addEventListener("click", () => {
+      try { window.KAMPYLE_ONSITE_SDK?.showForm(id); }
+      catch (e) { console.error("showForm error", e); }
+    });
+    grid.appendChild(btn);
+  });
+
+  // Quando o SDK carregar, atualiza preview, disponibilidade e dá um updatePageView
+  function onsiteLoaded() {
+    document.getElementById("urlOut").textContent = location.href;
+    previewVars();
+    revealAvailableForms();
+    notifyDigital(); // garante o trigger na carga inicial também
+  }
+  if (window.KAMPYLE_ONSITE_SDK) onsiteLoaded();
+  else window.addEventListener("neb_OnsiteLoaded", onsiteLoaded);
+</script>
 </body>
 </html>
