@@ -139,6 +139,7 @@
 
       <div class="actions">
         <button id="applyBtn">Apply Scenario (Set URL + Storage + Cookies)</button>
+        <button id="updateBtn" type="button">Update Page View</button>
         <button id="clearBtn">Clear Cookies/Storage</button>
         <span class="pill"><strong>Country</strong> & <strong>Locale</strong> also saved for filters</span>
       </div>
@@ -286,10 +287,25 @@
   // =========
   // DEBUG UI
   // =========
+  const actionsBar = document.querySelector(".actions");
   const debugBox = document.createElement("label");
   debugBox.style.display = "inline-flex"; debugBox.style.alignItems = "center"; debugBox.style.gap = "6px";
   debugBox.innerHTML = `<input id="dbgAll" type="checkbox"/> <span class="muted">Debug: show all buttons (ignore availability)</span>`;
-  document.querySelector(".actions")?.appendChild(debugBox);
+  actionsBar?.appendChild(debugBox);
+
+  // >>> Botão "Update Page View" (criado se não existir no HTML) <<<
+  let updateBtn = document.getElementById("updateBtn");
+  if (!updateBtn && actionsBar) {
+    updateBtn = document.createElement("button");
+    updateBtn.id = "updateBtn";
+    updateBtn.type = "button";
+    updateBtn.textContent = "Update Page View";
+    // tenta inserir antes do botão de limpar, se houver; senão, apenas adiciona ao final
+    const clearBtnEl = document.getElementById("clearBtn");
+    clearBtnEl ? actionsBar.insertBefore(updateBtn, clearBtnEl) : actionsBar.appendChild(updateBtn);
+  }
+  updateBtn?.addEventListener("click", notifyDigital);
+
   const dbgAll = document.getElementById("dbgAll");
 
   function revealAvailableForms() {
@@ -314,10 +330,10 @@
     // ex esperado: ["myaccount","{cty}","default","default","default","{locale}","{route}"]
     const country = segs[1] || "";
     const locale  = segs[6] || "";
-    const route   = segs[7] || "";
+    theRoute = segs[7] || "";
     const vars = {
       csp_id: CSP_MAP[u.host] || CSP_MAP.locationHostFallback,
-      country, locale, route,
+      country, locale, route: theRoute,
       params: Object.fromEntries(u.searchParams.entries()),
       cookies: document.cookie,
       sessionStorage: Object.fromEntries(Object.entries(sessionStorage))
@@ -357,7 +373,6 @@
     notifyDigital();
 
     // Após o update, atualiza a disponibilidade dos forms
-    // (um pequeno atraso ajuda quando o SDK recalcula targeting)
     setTimeout(revealAvailableForms, 200);
   }
 
