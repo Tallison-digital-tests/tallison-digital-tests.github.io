@@ -139,6 +139,7 @@
 
       <div class="actions">
         <button id="applyBtn">Apply Scenario (Set URL + Storage + Cookies)</button>
+        <button id="quickRandomBtn" type="button">Quick Random Scenario</button>
         <button id="updateBtn" type="button">Update Page View</button>
         <button id="clearBtn">Clear Cookies/Storage</button>
         <span class="pill"><strong>Country</strong> & <strong>Locale</strong> also saved for filters</span>
@@ -375,6 +376,85 @@
     // Após o update, atualiza a disponibilidade dos forms
     setTimeout(revealAvailableForms, 200);
   }
+  // ============================
+  // Helpers de random
+  // ============================
+  function randFrom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function randomPolicy() {
+    // tipo S6-987654
+    const prefixes = ["S6", "M8", "A1", "P3"];
+    const num = Math.floor(100000 + Math.random() * 900000);
+    return `${randFrom(prefixes)}-${num}`;
+  }
+
+  function randomFnol() {
+    return String(Math.floor(10000 + Math.random() * 900000));
+  }
+
+  function randomLossType() {
+    return randFrom(["Auto", "Home", "Travel", "Health", "Motor"]);
+  }
+
+  function randomClaimNum() {
+    // às vezes vazio, às vezes com valor
+    if (Math.random() < 0.35) return ""; // 35% de chance de não ter claim
+    const num = Math.floor(1 + Math.random() * 999);
+    return `CLM-${String(num).padStart(3, "0")}`;
+  }
+
+  function randomEnableCU() {
+    return randFrom(["", "true", "1"]);
+  }
+
+  function randomAuthState() {
+    return Math.random() < 0.5 ? "guest" : "auth";
+  }
+
+  function randomUpsParam() {
+    return randFrom(["", "true", "1"]);
+  } 
+
+  // ==========================
+  // Quick Random Scenario 😊
+  // ==========================
+  function quickRandomScenario() {
+    // Você escolhe env / country / locale / route manualmente.
+    // Aqui a gente só preenche o resto de forma "plausível".
+
+    // policyNumber e fnolId
+    policyInput.value = randomPolicy();
+    fnolInput.value   = randomFnol();
+
+    // update-payment-success só faz sentido se a rota for update-payment-success
+    if (routeSel.value === "update-payment-success") {
+      upsParam.value = randomUpsParam();
+    } else {
+      upsParam.value = "";
+    }
+
+    // Cookies fakezinhos
+    lossTypeInput.value   = randomLossType();
+    claimNumInput.value   = randomClaimNum();
+    enableCUSel.value     = randomEnableCU();
+
+    // Auth state
+    authSel.value = randomAuthState();
+
+    // fs_uid: deixa vazio pra applyScenario gerar automaticamente
+    fsuidInput.value = "";
+
+    // Aplica tudo de uma vez (set URL + storage + cookies + updatePageView)
+    applyScenario();
+  }
+
+  // Botão quick
+  const quickBtn = document.getElementById("quickRandomBtn");
+  if (quickBtn) {
+    quickBtn.addEventListener("click", quickRandomScenario);
+  }  
 
   // Botões já existentes
   document.getElementById("applyBtn")?.addEventListener("click", applyScenario);
