@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout</title>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        .back-link {
+            color: #2c3e50;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+        .back-link:hover { text-decoration: underline; }
+        
+        #feedbackButton {
+            display: none; 
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px auto;
+            transition: background 0.3s;
+        }
+        #feedbackButton:hover { background-color: #004494; }
+    </style>
+
+    </head>
+<body>
+
+    <a href="index.html" class="back-link">← Voltar para o Hub</a>
+
+    <div class="container">
+        <h1>Página de Teste</h1>
+        <p>Acione o botão abaixo para trigar a pesquisa do Medallia.</p>
+
+        <button id="feedbackButton">Acionar Pesquisa</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            function onsiteLoaded() {
+                // Exibe o botão apenas quando o SDK estiver pronto
+                document.getElementById("feedbackButton").style.display = "block";
+            }
+            
+            if (window.KAMPYLE_ONSITE_SDK) { 
+                onsiteLoaded(); 
+            } else { 
+                window.addEventListener('neb_OnsiteLoaded', onsiteLoaded); 
+            }
+
+            // O clique no botão dispara a pesquisa limpa
+            document.getElementById("feedbackButton").addEventListener("click", function () {
+                if (window.KAMPYLE_ONSITE_SDK && window.KAMPYLE_ONSITE_SDK.loadForm) {
+                    // 👉 Altere o ID (31894) para o ID correspondente a cada página
+                    window.KAMPYLE_ONSITE_SDK.loadForm(31894);
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
