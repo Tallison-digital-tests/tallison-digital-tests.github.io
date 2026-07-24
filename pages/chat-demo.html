@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,24 +17,17 @@
             /* Cor de fundo opcional */
         }
 
-        /* Regras para tentar forçar o componente a ser full screen */
+        /* Regras para forçar a janela interna de chat a ser full screen */
         df-messenger {
             --df-messenger-window-width: 100vw !important;
             --df-messenger-window-height: 100vh !important;
             --df-messenger-window-margin: 0 !important;
-
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 9999 !important;
+            --df-messenger-chat-window-width: 100vw !important;
+            --df-messenger-chat-window-height: 100vh !important;
+            --df-messenger-chat-window-margin: 0 !important;
         }
     </style>
 </head>
-
 <body>
     <script>
         (function () {
@@ -70,9 +62,9 @@
             dfMessenger.setAttribute("crestagpt-agent", "019f46bc-8a5f-730d-bd01-15bc7b628a71");
             dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
             dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
-
+            
             // Atributos adicionais para tentar iniciar o chat já aberto (depende da implementação do widget)
-            dfMessenger.setAttribute("expand", "true");
+            dfMessenger.setAttribute("expand", "true"); 
 
             document.body.appendChild(dfMessenger);
 
@@ -83,5 +75,4 @@
         })();
     </script>
 </body>
-
 </html>
