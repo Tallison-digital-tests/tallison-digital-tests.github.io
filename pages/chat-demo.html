@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,6 +29,7 @@
         }
     </style>
 </head>
+
 <body>
     <script>
         (function () {
@@ -53,18 +55,18 @@
             const dfMessenger = document.createElement("df-messenger");
             dfMessenger.setAttribute("ui-roundness", "oval");
             dfMessenger.setAttribute("selected-theme", "vibrant");
-            dfMessenger.setAttribute("auth-client-id", "0va-019f709b-c08e-710b-8606-710-ic0jkbc9");
+            dfMessenger.setAttribute("auth-client-id", "0va-019f46bc-8a5f-730d-bd01-15b-w50cv1wl");
             dfMessenger.setAttribute("recaptcha-site-key", "6LdzolUtAAAAACh6KayVe_phw3uUd9IQ9CPu4aEN");
             dfMessenger.setAttribute("recaptcha-checkbox-site-key", "6LcYjFUtAAAAAFXQhWD-ylOslwqNKLv0yeuXL1Jg");
             dfMessenger.setAttribute("crestagpt-customer", "smttech");
             dfMessenger.setAttribute("crestagpt-profile", "us-west-2");
             dfMessenger.setAttribute("crestagpt-usecase", "voice");
-            dfMessenger.setAttribute("crestagpt-agent", "019f709b-c08e-710b-8606-710709de1d6f");
+            dfMessenger.setAttribute("crestagpt-agent", "019f46bc-8a5f-730d-bd01-15bc7b628a71");
             dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
             dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
-            
+
             // Atributos adicionais para tentar iniciar o chat já aberto (depende da implementação do widget)
-            dfMessenger.setAttribute("expand", "true"); 
+            dfMessenger.setAttribute("expand", "true");
 
             document.body.appendChild(dfMessenger);
 
@@ -73,49 +75,48 @@
             script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
             document.body.appendChild(script);
 
-            // Script para injetar CSS no Shadow DOM focado no componente da Cresta (Mantine UI)
-            const injectShadowStyles = () => {
-                const df = document.querySelector("df-messenger");
-                if (df && df.shadowRoot && !df.shadowRoot.querySelector('#fullscreen-override')) {
-                    const style = document.createElement("style");
-                    style.id = 'fullscreen-override';
-                    style.innerHTML = `
-                        /* Tenta forçar o primeiro container principal (e o próprio widget) a ocupar 100% da tela */
-                        :host > div, 
-                        :host > main,
-                        .mantine-AppShell-root {
-                            width: 100vw !important;
-                            height: 100vh !important;
-                            max-width: none !important;
-                            max-height: none !important;
-                            border-radius: 0 !important;
-                            margin: 0 !important;
-                            position: fixed !important;
-                            bottom: 0 !important;
-                            right: 0 !important;
-                            top: 0 !important;
-                            left: 0 !important;
-                            z-index: 999999 !important;
-                        }
-                        
-                        /* Oculta o botão flutuante caso a janela já esteja aberta */
-                        :host > button {
-                            display: none !important;
-                        }
-                    `;
-                    df.shadowRoot.appendChild(style);
+            // A Cresta não usa Shadow Root! Ela renderiza o chat numa div com a classe 'cresta-widget-host'.
+            // Vamos injetar o CSS diretamente na página para forçar essa div a ocupar 100% da tela.
+            const forceCss = document.createElement("style");
+            forceCss.textContent = `
+                /* Força o host do chat a ocupar toda a tela */
+                .cresta-widget-host {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    bottom: 0 !important;
+                    right: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    max-width: none !important;
+                    max-height: none !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border-radius: 0 !important;
+                    z-index: 999999 !important;
+                    display: flex !important;
                 }
-            };
 
-            const intervalId = setInterval(() => {
-                const df = document.querySelector("df-messenger");
-                if (df && df.shadowRoot && df.shadowRoot.innerHTML.length > 0) {
-                    injectShadowStyles();
-                    clearInterval(intervalId);
+                /* Garante que os containers internos do Mantine UI também estiquem para preencher a tela */
+                .cresta-widget-host > div {
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    max-width: none !important;
+                    max-height: none !important;
+                    border-radius: 0 !important;
+                    flex-grow: 1;
                 }
-            }, 500);
+
+                /* Tenta esconder o botão de fechar/minimizar para parecer uma página nativa */
+                .cresta-widget-host button[aria-label="Minimize"],
+                .cresta-widget-host button[aria-label="Close"] {
+                    display: none !important;
+                }
+            `;
+            document.head.appendChild(forceCss);
 
         })();
     </script>
 </body>
+
 </html>
