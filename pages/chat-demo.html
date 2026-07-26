@@ -15,17 +15,47 @@
             height: 100vh;
             overflow: hidden;
             background-color: #f5f5f5;
-            /* Cor de fundo opcional */
         }
 
-        /* Regras para forçar a janela interna de chat a ser full screen */
-        df-messenger {
-            --df-messenger-window-width: 100vw !important;
-            --df-messenger-window-height: 100vh !important;
-            --df-messenger-window-margin: 0 !important;
-            --df-messenger-chat-window-width: 100vw !important;
-            --df-messenger-chat-window-height: 100vh !important;
-            --df-messenger-chat-window-margin: 0 !important;
+        /* 
+           O CSS NOSSO agressivo:
+           Como a página é SÓ pro chat, vamos forçar QUALQUER div que seja injetada direto 
+           no corpo da página (que é o que bibliotecas como Mantine/React fazem para Popups)
+           a ocupar a tela inteira. 
+        */
+        body > div {
+            position: fixed !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            max-width: none !important;
+            max-height: none !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            right: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            z-index: 999999 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        /* Para os elementos internos do chat crescerem junto (Mantine components) */
+        body > div > div, 
+        .mantine-AppShell-root {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            max-height: none !important;
+            flex-grow: 1 !important;
+            border-radius: 0 !important;
+        }
+
+        /* Esconde o botão launcher (geralmente um botão circular) */
+        body button[style*="border-radius: 50%"],
+        body button[aria-label="Minimize"],
+        body button[aria-label="Close"] {
+            display: none !important;
         }
     </style>
 </head>
@@ -35,24 +65,27 @@
         (function () {
             const styleEl = document.createElement("style");
             styleEl.textContent = `
-                df-messenger {
-                    --df-messenger-window-font-family: inter;
-                    --df-messenger-button-titlebar-font-color: #000000;
-                    --df-messenger-button-titlebar-subtitle-color: #000000;
-                    --df-messenger-form-button-background-color: rgba(30, 86, 216, 1);
-                    --df-messenger-form-button-text-color: #ffffff;
-                    --df-messenger-form-file-input-button-text-color: rgba(30, 86, 216, 1);
-                    --df-messenger-article-source-button-color: rgba(30, 86, 216, 1);
-                    --df-messenger-article-source-button-hover-color: rgba(24, 69, 173, 1);
-                    --df-messenger-input-border-color: rgba(30, 86, 216, 1);
-                    --df-messenger-send-icon-active-color: #ffffff;
-                    --df-messenger-send-icon-background-active-color: rgba(30, 86, 216, 1);
-                    --ai-message-agent-waiting-response-icon-background-color: #205AE3;
-                }
+              df-messenger {
+                --df-messenger-window-font-family: inter;
+                --df-messenger-button-titlebar-font-color: #000000;
+                --df-messenger-button-titlebar-subtitle-color: #000000;
+                --df-messenger-form-button-background-color: rgba(30, 86, 216, 1);
+                --df-messenger-form-button-text-color: #ffffff;
+                --df-messenger-form-file-input-button-text-color: rgba(30, 86, 216, 1);
+                --df-messenger-article-source-button-color: rgba(30, 86, 216, 1);
+                --df-messenger-article-source-button-hover-color: rgba(24, 69, 173, 1);
+                --df-messenger-input-border-color: rgba(30, 86, 216, 1);
+                --df-messenger-send-icon-active-color: #ffffff;
+                --df-messenger-send-icon-background-active-color: rgba(30, 86, 216, 1);
+                --ai-message-agent-waiting-response-icon-background-color: #205AE3;
+              }
             `;
             document.head.appendChild(styleEl);
 
             const dfMessenger = document.createElement("df-messenger");
+            dfMessenger.setAttribute("auto-start", "true");
+            dfMessenger.setAttribute("hide-kb-sources", "true");
+            dfMessenger.setAttribute("launcher-visibility", "prominent");
             dfMessenger.setAttribute("ui-roundness", "oval");
             dfMessenger.setAttribute("selected-theme", "vibrant");
             dfMessenger.setAttribute("auth-client-id", "0va-019f46bc-8a5f-730d-bd01-15b-w50cv1wl");
@@ -64,57 +97,15 @@
             dfMessenger.setAttribute("crestagpt-agent", "019f46bc-8a5f-730d-bd01-15bc7b628a71");
             dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
             dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
-
-            // Atributos adicionais para tentar iniciar o chat já aberto (depende da implementação do widget)
-            dfMessenger.setAttribute("expand", "true");
-
+            dfMessenger.setAttribute("powered-by-cresta", "false");
+            dfMessenger.setAttribute("show-chat-window-shadow", "false");
+            dfMessenger.setAttribute("render-transfer-to-human-agent-indicator", "false");
             document.body.appendChild(dfMessenger);
 
             const script = document.createElement("script");
             script.type = "module";
             script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
             document.body.appendChild(script);
-
-            // A Cresta não usa Shadow Root! Ela renderiza o chat numa div com a classe 'cresta-widget-host'.
-            // Vamos injetar o CSS diretamente na página para forçar essa div a ocupar 100% da tela.
-            const forceCss = document.createElement("style");
-            forceCss.textContent = `
-                /* Força o host do chat a ocupar toda a tela */
-                .cresta-widget-host {
-                    position: fixed !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    bottom: 0 !important;
-                    right: 0 !important;
-                    width: 100vw !important;
-                    height: 100vh !important;
-                    max-width: none !important;
-                    max-height: none !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    border-radius: 0 !important;
-                    z-index: 999999 !important;
-                    display: flex !important;
-                }
-
-                /* Garante que os containers internos do Mantine UI também estiquem para preencher a tela */
-                .cresta-widget-host > div {
-                    width: 100vw !important;
-                    height: 100vh !important;
-                    max-width: none !important;
-                    max-height: none !important;
-                    border-radius: 0 !important;
-                    flex-grow: 1;
-                }
-
-                /* Tenta esconder o botão de fechar/minimizar para parecer uma página nativa */
-                .cresta-widget-host button[aria-label="Minimize"],
-                .cresta-widget-host button[aria-label="Close"] {
-                    display: none !important;
-                }
-            `;
-            document.head.appendChild(forceCss);
-
         })();
     </script>
 </body>
