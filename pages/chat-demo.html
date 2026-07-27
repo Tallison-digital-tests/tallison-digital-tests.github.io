@@ -23,7 +23,7 @@
            no corpo da página (que é o que bibliotecas como Mantine/React fazem para Popups)
            a ocupar a tela inteira. 
         */
-        body > div {
+        body>div {
             position: fixed !important;
             width: 100vw !important;
             height: 100vh !important;
@@ -41,7 +41,7 @@
         }
 
         /* Para os elementos internos do chat crescerem junto (Mantine components) */
-        body > div > div, 
+        body>div>div,
         .mantine-AppShell-root {
             width: 100% !important;
             height: 100% !important;
@@ -107,12 +107,22 @@
 
             if (surveyId) {
                 dfMessenger.setAttribute("user-id", customerId || "");
-                // Tentativa de passar variavel via atributos
-                dfMessenger.setAttribute("crestagpt-variable-survey_id", surveyId);
-                dfMessenger.setAttribute("crestagpt-variable-customer_id", customerId || "");
             }
-            
+
             document.body.appendChild(dfMessenger);
+
+            // A forma padrão do df-messenger (que o Cresta usa por baixo) de passar parâmetros customizados
+            // é injetando no payload do chat via setQueryParameters, após o componente carregar.
+            if (surveyId) {
+                window.addEventListener('df-messenger-loaded', () => {
+                    dfMessenger.setQueryParameters({
+                        parameters: {
+                            survey_id: surveyId,
+                            customer_id: customerId || ""
+                        }
+                    });
+                });
+            }
 
             const script = document.createElement("script");
             script.type = "module";
