@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Bank - Atendimento</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f8f9fa; /* Fundo um pouco mais elegante */
+            font-family: "Inter", system-ui, sans-serif;
+        }
+    </style>
+</head>
+<body>
+<script>
+  (function () {
+    
+    const styleEl = document.createElement("style");
+    styleEl.textContent = `
+      df-messenger {
+        --df-messenger-window-font-family: "Inter", sans-serif;
+        --df-messenger-button-titlebar-font-color: #ffffff;
+        --df-messenger-button-titlebar-subtitle-color: #e0e0e0;
+        /* Cores modernas do Aura Bank (Ex: Dark Mode com destaques) */
+        --df-messenger-form-button-background-color: #111827;
+        --df-messenger-form-button-text-color: #ffffff;
+        --df-messenger-form-file-input-button-text-color: #111827;
+        --df-messenger-article-source-button-color: #111827;
+        --df-messenger-article-source-button-hover-color: #374151;
+        --df-messenger-input-border-color: #d1d5db;
+        --df-messenger-send-icon-active-color: #ffffff;
+        --df-messenger-send-icon-background-active-color: #111827;
+        --ai-message-agent-waiting-response-icon-background-color: #111827;
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const surveyId = urlParams.get('survey_id') || urlParams.get('surveyid');
+    const customerId = urlParams.get('customer_id') || urlParams.get('customerid');
+
+    const dfMessenger = document.createElement("df-messenger");
+    dfMessenger.setAttribute("auto-start", "true");
+    dfMessenger.setAttribute("hide-kb-sources", "true");
+    dfMessenger.setAttribute("launcher-visibility", "prominent");
+    dfMessenger.setAttribute("ui-roundness", "oval");
+    dfMessenger.setAttribute("selected-theme", "vibrant");
+    dfMessenger.setAttribute("auth-client-id", "0va-019f46bc-8a5f-730d-bd01-15b-w50cv1wl");
+    dfMessenger.setAttribute("recaptcha-site-key", "6LdzolUtAAAAACh6KayVe_phw3uUd9IQ9CPu4aEN");
+    dfMessenger.setAttribute("recaptcha-checkbox-site-key", "6LcYjFUtAAAAAFXQhWD-ylOslwqNKLv0yeuXL1Jg");
+    dfMessenger.setAttribute("crestagpt-customer", "smttech");
+    dfMessenger.setAttribute("crestagpt-profile", "us-west-2");
+    dfMessenger.setAttribute("crestagpt-usecase", "voice");
+    dfMessenger.setAttribute("crestagpt-agent", "019f46bc-8a5f-730d-bd01-15bc7b628a71");
+    dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
+    dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
+    dfMessenger.setAttribute("powered-by-cresta", "false");
+    dfMessenger.setAttribute("show-chat-window-shadow", "false");
+    dfMessenger.setAttribute("render-transfer-to-human-agent-indicator", "false");
+    dfMessenger.setAttribute("chat-title", "Atendimento Aura Bank");
+
+    if (surveyId) {
+        dfMessenger.setAttribute("user-id", customerId || "");
+        
+        window.addEventListener('df-messenger-loaded', () => {
+            dfMessenger.setQueryParameters({
+                parameters: {
+                    survey_id: surveyId,
+                    customer_id: customerId || ""
+                }
+            });
+        });
+    }
+
+    document.body.appendChild(dfMessenger);
+
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
+    document.body.appendChild(script);
+    
+    // Injeção cirúrgica do CSS no Shadow Root exato encontrado na print
+    const forceFullscreenInterval = setInterval(() => {
+        const host = document.querySelector('.cresta-widget-host');
+        if (host && host.shadowRoot) {
+            
+            // 1. Força a alteração do título caso o Cresta sobrescreva o chat-title
+            const titleEl = host.shadowRoot.querySelector('#cresta-chat-dialog-title');
+            if (titleEl && titleEl.textContent !== 'Atendimento Aura Bank') {
+                titleEl.textContent = 'Atendimento Aura Bank';
+            }
+
+            // 2. Injeta o CSS moderno e de tela cheia
+            if (!host.shadowRoot.querySelector('#fullscreen-css')) {
+                const shadowStyle = document.createElement("style");
+                shadowStyle.id = "fullscreen-css";
+                shadowStyle.textContent = `
+                    /* Ocupa a tela inteira */
+                    .MessengerContainer-module__wrapper,
+                    .MessengerContainer-module__openedWithoutMessages,
+                    .MessengerContainer-module__opened {
+                        position: fixed !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        right: 0 !important;
+                        bottom: 0 !important;
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        max-width: none !important;
+                        max-height: none !important;
+                        margin: 0 !important;
+                        border-radius: 0 !important;
+                    }
+                    
+                    /* Oculta a mensagem do reCAPTCHA revelada na print */
+                    .PolicyWindow-module__default {
+                        display: none !important;
+                    }
+
+                    /* Oculta os botões de controle (minimizar e fechar) para parecer nativo */
+                    button[aria-label="Minimize"],
+                    button[aria-label="Close"] {
+                        display: none !important;
+                    }
+
+                    /* Estilização moderna da barra de título (Aura Bank) */
+                    .TitleBar-module__titleBar {
+                        background-color: #111827 !important; /* Cor dark premium */
+                        border-bottom: none !important;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+                        padding: 20px 24px !important;
+                    }
+                    
+                    #cresta-chat-dialog-title {
+                        font-family: "Inter", sans-serif !important;
+                        font-weight: 600 !important;
+                        font-size: 18px !important;
+                        color: #ffffff !important;
+                        letter-spacing: 0.5px !important;
+                    }
+                `;
+                host.shadowRoot.appendChild(shadowStyle);
+            }
+        }
+    }, 100);
+    
+  })(); 
+</script>
+</body>
+</html>
