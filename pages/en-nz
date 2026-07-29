@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account</title>
+    
+    <!-- Set the enableLogoutSurvey cookie -->
+    <script>
+        document.cookie = "enableLogoutSurvey=True; path=/";
+    </script>
+    
+    <!-- Medallia Embed Code -->
+    <script type="text/javascript" src="https://resources.digital-cloud.medallia.eu/wdceu/217941/onsite/embed.js" async></script>
+</head>
+<body>
+    <h1>My Account</h1>
+</body>
+</html>
