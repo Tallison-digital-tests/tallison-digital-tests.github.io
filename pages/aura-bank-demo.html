@@ -23,7 +23,19 @@
     <button onclick="document.body.classList.add('mobile-view')" style="background: #111827; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">📱 Mobile</button>
     <button onclick="document.body.classList.remove('mobile-view')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">💻 Desktop</button>
 </div>
-
+<script>
+  // Lê os parâmetros da URL atual
+  const params = new URLSearchParams(window.location.search);
+  
+  // Seleciona o widget e injeta o payload customizado
+  const dfMessenger = document.querySelector('df-messenger');
+  if (dfMessenger) {
+      dfMessenger.setAttribute('custom-payload', JSON.stringify({
+        survey_id: params.get('survey_id') || '',
+        customer_id: params.get('customer_id') || ''
+      }));
+  }
+</script>
 <script>
   (function () {
     
