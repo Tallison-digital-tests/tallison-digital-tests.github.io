@@ -16,7 +16,14 @@
         }
     </style>
 </head>
-<body>
+<body class="mobile-view">
+
+<!-- UI Toggle para Mobile/Desktop -->
+<div style="position: fixed; top: 16px; right: 16px; z-index: 999999; display: flex; gap: 8px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); backdrop-filter: blur(4px); border: 1px solid #e5e7eb;">
+    <button onclick="document.body.classList.add('mobile-view')" style="background: #111827; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">📱 Mobile</button>
+    <button onclick="document.body.classList.remove('mobile-view')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">💻 Desktop</button>
+</div>
+
 <script>
   (function () {
     
@@ -95,56 +102,87 @@
                 titleEl.textContent = 'Atendimento Aura Bank';
             }
 
-            // 2. Injeta o CSS moderno e de tela cheia
-            if (!host.shadowRoot.querySelector('#fullscreen-css')) {
-                const shadowStyle = document.createElement("style");
+            // 2. Injeta o CSS moderno e gerencia responsividade
+            let shadowStyle = host.shadowRoot.querySelector('#fullscreen-css');
+            if (!shadowStyle) {
+                shadowStyle = document.createElement("style");
                 shadowStyle.id = "fullscreen-css";
-                shadowStyle.textContent = `
-                    /* Ocupa a tela inteira */
-                    .MessengerContainer-module__wrapper,
-                    .MessengerContainer-module__openedWithoutMessages,
-                    .MessengerContainer-module__opened {
-                        position: fixed !important;
-                        top: 0 !important;
-                        left: 0 !important;
-                        right: 0 !important;
-                        bottom: 0 !important;
-                        width: 100vw !important;
-                        height: 100vh !important;
-                        max-width: none !important;
-                        max-height: none !important;
-                        margin: 0 !important;
-                        border-radius: 0 !important;
-                    }
-                    
-                    /* Oculta a mensagem do reCAPTCHA revelada na print */
-                    .PolicyWindow-module__default {
-                        display: none !important;
-                    }
-
-                    /* Oculta os botões de controle (minimizar e fechar) para parecer nativo */
-                    button[aria-label="Minimize"],
-                    button[aria-label="Close"] {
-                        display: none !important;
-                    }
-
-                    /* Estilização moderna da barra de título (Aura Bank) */
-                    .TitleBar-module__titleBar {
-                        background-color: #111827 !important; /* Cor dark premium */
-                        border-bottom: none !important;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-                        padding: 20px 24px !important;
-                    }
-                    
-                    #cresta-chat-dialog-title {
-                        font-family: "Inter", sans-serif !important;
-                        font-weight: 600 !important;
-                        font-size: 18px !important;
-                        color: #ffffff !important;
-                        letter-spacing: 0.5px !important;
-                    }
-                `;
                 host.shadowRoot.appendChild(shadowStyle);
+            }
+            
+            const isMobile = document.body.classList.contains('mobile-view');
+            
+            const containerCss = isMobile ? `
+                .MessengerContainer-module__wrapper,
+                .MessengerContainer-module__openedWithoutMessages,
+                .MessengerContainer-module__opened {
+                    position: fixed !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    right: auto !important;
+                    bottom: auto !important;
+                    transform: translate(-50%, -50%) !important;
+                    width: 375px !important;
+                    height: 812px !important;
+                    max-width: 90vw !important;
+                    max-height: 90vh !important;
+                    margin: 0 !important;
+                    border-radius: 36px !important;
+                    border: 8px solid #222 !important;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+                    overflow: hidden !important;
+                }
+            ` : `
+                .MessengerContainer-module__wrapper,
+                .MessengerContainer-module__openedWithoutMessages,
+                .MessengerContainer-module__opened {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    bottom: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    max-width: none !important;
+                    max-height: none !important;
+                    margin: 0 !important;
+                    border-radius: 0 !important;
+                    border: none !important;
+                    transform: none !important;
+                }
+            `;
+
+            const currentCss = containerCss + `
+                /* Oculta a mensagem do reCAPTCHA revelada na print */
+                .PolicyWindow-module__default {
+                    display: none !important;
+                }
+
+                /* Oculta os botões de controle (minimizar e fechar) para parecer nativo */
+                button[aria-label="Minimize"],
+                button[aria-label="Close"] {
+                    display: none !important;
+                }
+
+                /* Estilização moderna da barra de título (Aura Bank) */
+                .TitleBar-module__titleBar {
+                    background-color: #111827 !important; /* Cor dark premium */
+                    border-bottom: none !important;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+                    padding: 20px 24px !important;
+                }
+                
+                #cresta-chat-dialog-title {
+                    font-family: "Inter", sans-serif !important;
+                    font-weight: 600 !important;
+                    font-size: 18px !important;
+                    color: #ffffff !important;
+                    letter-spacing: 0.5px !important;
+                }
+            `;
+            
+            if (shadowStyle.textContent !== currentCss) {
+                shadowStyle.textContent = currentCss;
             }
         }
     }, 100);
