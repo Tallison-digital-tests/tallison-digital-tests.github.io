@@ -11,7 +11,7 @@
             width: 100vw;
             height: 100vh;
             overflow: hidden;
-            background-color: #f8f9fa; /* Fundo um pouco mais elegante */
+            background-color: #f8f9fa;
             font-family: "Inter", system-ui, sans-serif;
         }
     </style>
@@ -23,29 +23,18 @@
     <button onclick="document.body.classList.add('mobile-view')" style="background: #111827; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">📱 Mobile</button>
     <button onclick="document.body.classList.remove('mobile-view')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">💻 Desktop</button>
 </div>
-<script>
-  // Lê os parâmetros da URL atual
-  const params = new URLSearchParams(window.location.search);
-  
-  // Seleciona o widget e injeta o payload customizado
-  const dfMessenger = document.querySelector('df-messenger');
-  if (dfMessenger) {
-      dfMessenger.setAttribute('custom-payload', JSON.stringify({
-        survey_id: params.get('survey_id') || '',
-        customer_id: params.get('customer_id') || ''
-      }));
-  }
-</script>
+
+<!-- ÚNICO SCRIPT NECESSÁRIO -->
 <script>
   (function () {
     
+    // 1. Injeção de CSS nativo do df-messenger
     const styleEl = document.createElement("style");
     styleEl.textContent = `
       df-messenger {
         --df-messenger-window-font-family: "Inter", sans-serif;
         --df-messenger-button-titlebar-font-color: #ffffff;
         --df-messenger-button-titlebar-subtitle-color: #e0e0e0;
-        /* Cores modernas do Aura Bank (Ex: Dark Mode com destaques) */
         --df-messenger-form-button-background-color: #111827;
         --df-messenger-form-button-text-color: #ffffff;
         --df-messenger-form-file-input-button-text-color: #111827;
@@ -59,10 +48,12 @@
     `;
     document.head.appendChild(styleEl);
 
+    // 2. Leitura dos Parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
-    const surveyId = urlParams.get('survey_id') || urlParams.get('surveyid');
-    const customerId = urlParams.get('customer_id') || urlParams.get('customerid');
+    const surveyId = urlParams.get('survey_id') || urlParams.get('surveyid') || 'nao_informado';
+    const customerId = urlParams.get('customer_id') || urlParams.get('customerid') || 'nao_informado';
 
+    // 3. Criação e Configuração do Widget
     const dfMessenger = document.createElement("df-messenger");
     dfMessenger.setAttribute("auto-start", "true");
     dfMessenger.setAttribute("hide-kb-sources", "true");
@@ -82,19 +73,33 @@
     dfMessenger.setAttribute("show-chat-window-shadow", "false");
     dfMessenger.setAttribute("render-transfer-to-human-agent-indicator", "false");
     dfMessenger.setAttribute("chat-title", "Atendimento Aura Bank");
+    dfMessenger.setAttribute("user-id", customerId); // Seta o ID nativo
 
-    if (surveyId) {
-        dfMessenger.setAttribute("user-id", customerId || "");
+    // 4. Lógica de Interceptação (O Bypass)
+    window.addEventListener('df-messenger-loaded', () => {
         
-        window.addEventListener('df-messenger-loaded', () => {
-            dfMessenger.setQueryParameters({
-                parameters: {
-                    survey_id: surveyId,
-                    customer_id: customerId || ""
-                }
-            });
+        // Envia o payload customizado nativo (por via das dúvidas)
+        dfMessenger.setQueryParameters({
+            parameters: {
+                survey_id: surveyId,
+                customer_id: customerId
+            }
         });
-    }
+
+        // INJEÇÃO DA MENSAGEM OCULTA PARA A LLM LER
+        // Verifica se realmente há IDs para enviar, evitando disparos vazios
+        if (surveyId !== 'nao_informado' || customerId !== 'nao_informado') {
+            const initMessage = `[SYSTEM_INIT] survey_id=${surveyId} | customer_id=${customerId}`;
+            
+            // Tenta usar a API nativa do df-messenger para enviar texto silenciosamente
+            try {
+                // Esse comando empurra a mensagem como se o usuário tivesse digitado
+                const request = document.querySelector('df-messenger').sendQuery(initMessage);
+            } catch (e) {
+                console.warn("API sendQuery não suportada pela versão do widget Cresta.", e);
+            }
+        }
+    });
 
     document.body.appendChild(dfMessenger);
 
@@ -103,18 +108,16 @@
     script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
     document.body.appendChild(script);
     
-    // Injeção cirúrgica do CSS no Shadow Root exato encontrado na print
+    // 5. Injeção cirúrgica do CSS no Shadow Root
     const forceFullscreenInterval = setInterval(() => {
         const host = document.querySelector('.cresta-widget-host');
         if (host && host.shadowRoot) {
             
-            // 1. Força a alteração do título caso o Cresta sobrescreva o chat-title
             const titleEl = host.shadowRoot.querySelector('#cresta-chat-dialog-title');
             if (titleEl && titleEl.textContent !== 'Atendimento Aura Bank') {
                 titleEl.textContent = 'Atendimento Aura Bank';
             }
 
-            // 2. Injeta o CSS moderno e gerencia responsividade
             let shadowStyle = host.shadowRoot.querySelector('#fullscreen-css');
             if (!shadowStyle) {
                 shadowStyle = document.createElement("style");
@@ -165,25 +168,19 @@
             `;
 
             const currentCss = containerCss + `
-                /* Oculta a mensagem do reCAPTCHA revelada na print */
                 .PolicyWindow-module__default {
                     display: none !important;
                 }
-
-                /* Oculta os botões de controle (minimizar e fechar) para parecer nativo */
                 button[aria-label="Minimize"],
                 button[aria-label="Close"] {
                     display: none !important;
                 }
-
-                /* Estilização moderna da barra de título (Aura Bank) */
                 .TitleBar-module__titleBar {
-                    background-color: #111827 !important; /* Cor dark premium */
+                    background-color: #111827 !important;
                     border-bottom: none !important;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
                     padding: 20px 24px !important;
                 }
-                
                 #cresta-chat-dialog-title {
                     font-family: "Inter", sans-serif !important;
                     font-weight: 600 !important;
