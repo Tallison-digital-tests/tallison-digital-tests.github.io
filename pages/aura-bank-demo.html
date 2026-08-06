@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aura Bank - Atendimento</title>
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100vw;
@@ -14,120 +16,149 @@
             background-color: #f8f9fa;
             font-family: "Inter", system-ui, sans-serif;
         }
+
+        /* CSS custom properties do widget Cresta devem ficar no :root (doc oficial) */
+        :root {
+            --df-messenger-window-font-family: "Inter", sans-serif;
+            --df-messenger-button-titlebar-font-color: #ffffff;
+            --df-messenger-button-titlebar-subtitle-color: #e0e0e0;
+            --df-messenger-form-button-background-color: #111827;
+            --df-messenger-form-button-text-color: #ffffff;
+            --df-messenger-form-file-input-button-text-color: #111827;
+            --df-messenger-article-source-button-color: #111827;
+            --df-messenger-article-source-button-hover-color: #374151;
+            --df-messenger-input-border-color: #d1d5db;
+            --df-messenger-send-icon-active-color: #ffffff;
+            --df-messenger-send-icon-background-active-color: #111827;
+            --ai-message-agent-waiting-response-icon-background-color: #111827;
+        }
     </style>
 </head>
+
 <body class="mobile-view">
 
-<!-- UI Toggle para Mobile/Desktop -->
-<div style="position: fixed; top: 16px; right: 16px; z-index: 999999; display: flex; gap: 8px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); backdrop-filter: blur(4px); border: 1px solid #e5e7eb;">
-    <button onclick="document.body.classList.add('mobile-view')" style="background: #111827; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">📱 Mobile</button>
-    <button onclick="document.body.classList.remove('mobile-view')" style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">💻 Desktop</button>
-</div>
+    <!-- UI Toggle para Mobile/Desktop -->
+    <div
+        style="position: fixed; top: 16px; right: 16px; z-index: 999999; display: flex; gap: 8px; background: rgba(255,255,255,0.9); padding: 8px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); backdrop-filter: blur(4px); border: 1px solid #e5e7eb;">
+        <button onclick="document.body.classList.add('mobile-view')"
+            style="background: #111827; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">📱
+            Mobile</button>
+        <button onclick="document.body.classList.remove('mobile-view')"
+            style="background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; padding: 8px 16px; border-radius: 6px; font-family: Inter, sans-serif; font-weight: 500; cursor: pointer;">💻
+            Desktop</button>
+    </div>
 
-<!-- ÚNICO SCRIPT NECESSÁRIO -->
-<script>
-  (function () {
-    
-    // 1. Injeção de CSS nativo do df-messenger
-    const styleEl = document.createElement("style");
-    styleEl.textContent = `
-      df-messenger {
-        --df-messenger-window-font-family: "Inter", sans-serif;
-        --df-messenger-button-titlebar-font-color: #ffffff;
-        --df-messenger-button-titlebar-subtitle-color: #e0e0e0;
-        --df-messenger-form-button-background-color: #111827;
-        --df-messenger-form-button-text-color: #ffffff;
-        --df-messenger-form-file-input-button-text-color: #111827;
-        --df-messenger-article-source-button-color: #111827;
-        --df-messenger-article-source-button-hover-color: #374151;
-        --df-messenger-input-border-color: #d1d5db;
-        --df-messenger-send-icon-active-color: #ffffff;
-        --df-messenger-send-icon-background-active-color: #111827;
-        --ai-message-agent-waiting-response-icon-background-color: #111827;
-      }
-    `;
-    document.head.appendChild(styleEl);
+    <!-- ÚNICO SCRIPT NECESSÁRIO -->
 
-    // 2. Leitura dos Parâmetros da URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const surveyId = urlParams.get('survey_id') || urlParams.get('surveyid') || 'nao_informado';
-    const customerId = urlParams.get('customer_id') || urlParams.get('customerid') || 'nao_informado';
 
-    // 3. Criação e Configuração do Widget
-    const dfMessenger = document.createElement("df-messenger");
-    dfMessenger.setAttribute("auto-start", "true");
-    dfMessenger.setAttribute("hide-kb-sources", "true");
-    dfMessenger.setAttribute("launcher-visibility", "prominent");
-    dfMessenger.setAttribute("ui-roundness", "oval");
-    dfMessenger.setAttribute("selected-theme", "vibrant");
-    dfMessenger.setAttribute("auth-client-id", "0va-019f709b-c08e-710b-8606-710-ic0jkbc9");
-    dfMessenger.setAttribute("recaptcha-site-key", "6LchNmMtAAAAAI0-uo64_rHDiV9WpzsVhpoV5Lhp");
-    dfMessenger.setAttribute("recaptcha-checkbox-site-key", "6Lfg6GItAAAAACEPT7WsUkVO8yKW_QKPAo0AiD24");
-    dfMessenger.setAttribute("crestagpt-customer", "smttech");
-    dfMessenger.setAttribute("crestagpt-profile", "us-west-2");
-    dfMessenger.setAttribute("crestagpt-usecase", "voice");
-    dfMessenger.setAttribute("crestagpt-agent", "019f709b-c08e-710b-8606-710709de1d6f");
-    dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
-    dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
-    dfMessenger.setAttribute("powered-by-cresta", "false");
-    dfMessenger.setAttribute("show-chat-window-shadow", "false");
-    dfMessenger.setAttribute("render-transfer-to-human-agent-indicator", "false");
-    dfMessenger.setAttribute("chat-title", "Atendimento Aura Bank");
-    dfMessenger.setAttribute("user-id", customerId); // Seta o ID nativo
+    <script>
+        (function () {
 
-    // 4. Lógica de Interceptação (O Bypass)
-    window.addEventListener('df-messenger-loaded', () => {
-        
-        // Envia o payload customizado nativo (por via das dúvidas)
-        dfMessenger.setQueryParameters({
-            parameters: {
-                survey_id: surveyId,
-                customer_id: customerId
-            }
-        });
+            // 1. CSS já injetado via :root no <head> (doc oficial Cresta)
+            //    Não é necessário replicar aqui.
 
-        // INJEÇÃO DA MENSAGEM OCULTA PARA A LLM LER
-        // Verifica se realmente há IDs para enviar, evitando disparos vazios
-        if (surveyId !== 'nao_informado' || customerId !== 'nao_informado') {
-            const initMessage = `[SYSTEM_INIT] survey_id=${surveyId} | customer_id=${customerId}`;
-            
-            // Tenta usar a API nativa do df-messenger para enviar texto silenciosamente
-            try {
-                // Esse comando empurra a mensagem como se o usuário tivesse digitado
-                const request = document.querySelector('df-messenger').sendQuery(initMessage);
-            } catch (e) {
-                console.warn("API sendQuery não suportada pela versão do widget Cresta.", e);
-            }
-        }
-    });
+            // 2. Leitura dos Parâmetros da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const surveyId = urlParams.get('survey_id') || urlParams.get('surveyid') || 'nao_informado';
+            const customerId = urlParams.get('customer_id') || urlParams.get('customerid') || 'nao_informado';
 
-    document.body.appendChild(dfMessenger);
+            // 3. Criação e Configuração do Widget
+            const dfMessenger = document.createElement("df-messenger");
+            dfMessenger.setAttribute("auto-start", "true");
+            dfMessenger.setAttribute("hide-kb-sources", "true");
+            dfMessenger.setAttribute("launcher-visibility", "prominent");
+            dfMessenger.setAttribute("ui-roundness", "oval");
+            dfMessenger.setAttribute("selected-theme", "vibrant");
+            dfMessenger.setAttribute("auth-client-id", "0va-019f709b-c08e-710b-8606-710-ic0jkbc9");
+            dfMessenger.setAttribute("recaptcha-site-key", "6LchNmMtAAAAAI0-uo64_rHDiV9WpzsVhpoV5Lhp");
+            dfMessenger.setAttribute("recaptcha-checkbox-site-key", "6Lfg6GItAAAAACEPT7WsUkVO8yKW_QKPAo0AiD24");
+            dfMessenger.setAttribute("crestagpt-customer", "smttech");
+            dfMessenger.setAttribute("crestagpt-profile", "us-west-2");
+            dfMessenger.setAttribute("crestagpt-usecase", "voice");
+            dfMessenger.setAttribute("crestagpt-agent", "019f709b-c08e-710b-8606-710709de1d6f");
+            dfMessenger.setAttribute("crestagpt-api", "https://api-smttech.cresta.com");
+            dfMessenger.setAttribute("crestagpt-auth-endpoint", "https://auth.us-west-2-prod.cresta.com");
+            dfMessenger.setAttribute("powered-by-cresta", "false");
+            dfMessenger.setAttribute("show-chat-window-shadow", "false");
+            dfMessenger.setAttribute("inline-survey-on-chat-termination", "false");
+            dfMessenger.setAttribute("show-rating-question-in-post-survey", "false");
+            dfMessenger.setAttribute("show-problem-solved-question-in-post-survey", "false");
+            dfMessenger.setAttribute("render-transfer-to-human-agent-indicator", "false");
+            dfMessenger.setAttribute("chat-title", "Atendimento Aura Bank");
 
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
-    document.body.appendChild(script);
-    
-    // 5. Injeção cirúrgica do CSS no Shadow Root
-    const forceFullscreenInterval = setInterval(() => {
-        const host = document.querySelector('.cresta-widget-host');
-        if (host && host.shadowRoot) {
-            
-            const titleEl = host.shadowRoot.querySelector('#cresta-chat-dialog-title');
-            if (titleEl && titleEl.textContent !== 'Atendimento Aura Bank') {
-                titleEl.textContent = 'Atendimento Aura Bank';
-            }
+            document.body.appendChild(dfMessenger);
 
-            let shadowStyle = host.shadowRoot.querySelector('#fullscreen-css');
-            if (!shadowStyle) {
-                shadowStyle = document.createElement("style");
-                shadowStyle.id = "fullscreen-css";
-                host.shadowRoot.appendChild(shadowStyle);
-            }
-            
-            const isMobile = document.body.classList.contains('mobile-view');
-            
-            const containerCss = isMobile ? `
+            // O script DEVE vir depois do elemento no DOM (doc oficial)
+            const script = document.createElement("script");
+            script.type = "module";
+            script.src = "https://va-widget.us-west-2-prod.cresta.ai/ai-agent-widget/index.js";
+            document.body.appendChild(script);
+
+
+            // SYSTEM_INIT: envia os IDs via chat para o LLM ler e salvar via variable_filling_tool
+            // Sem o IF para garantir que sempre rode no seu teste!
+            const initMessage = `[SYSTEM_INIT] survey_id=${surveyId} | customer_id=12345`; // customer_id hardcoded p/ teste
+
+            window.addEventListener('CRESTA_CHAT_STARTED', async () => {
+                const sent = await window.crestaChatWidget.sendMessage(initMessage);
+                if (sent) {
+                    console.log('[CRESTA] SYSTEM_INIT enviado com sucesso.');
+                } else {
+                    console.warn('[CRESTA] Falha ao enviar SYSTEM_INIT. Chat não ficou pronto.');
+                }
+            }, { once: true });
+
+
+            // 5. Injeção cirúrgica do CSS no Shadow Root
+            const forceFullscreenInterval = setInterval(() => {
+                const host = document.querySelector('.cresta-widget-host');
+                if (host && host.shadowRoot) {
+
+                    const titleEl = host.shadowRoot.querySelector('#cresta-chat-dialog-title');
+                    if (titleEl && titleEl.textContent !== 'Atendimento Aura Bank') {
+                        titleEl.textContent = 'Atendimento Aura Bank';
+                    }
+
+                    let shadowStyle = host.shadowRoot.querySelector('#fullscreen-css');
+                    if (!shadowStyle) {
+                        shadowStyle = document.createElement("style");
+                        shadowStyle.id = "fullscreen-css";
+                        host.shadowRoot.appendChild(shadowStyle);
+                    }
+
+                    // 6. Modificações de Mensagens (Esconder SYSTEM_INIT e Estilizar Boas-Vindas)
+                    const allElements = host.shadowRoot.querySelectorAll('div, span, p');
+                    allElements.forEach(el => {
+                        for (let node of el.childNodes) {
+                            if (node.nodeType === Node.TEXT_NODE) {
+                                // A) Esconder SYSTEM_INIT (balão + linha do chat)
+                                if (node.nodeValue.includes('[SYSTEM_INIT]')) {
+                                    let target = el;
+                                    // Tenta subir até 10 níveis para achar o container raiz da linha
+                                    for (let i = 0; i < 10; i++) {
+                                        const parent = target.parentElement;
+                                        if (!parent || parent === host.shadowRoot) break;
+                                        if (parent.children.length > 1 && i > 1) break;
+                                        target = parent;
+                                    }
+                                    target.style.setProperty('display', 'none', 'important');
+                                    target.style.setProperty('margin', '0', 'important');
+                                    target.style.setProperty('padding', '0', 'important');
+                                    target.style.setProperty('height', '0', 'important');
+                                    target.style.setProperty('overflow', 'hidden', 'important');
+                                }
+
+                                // B) Deixar a mensagem inicial de boas-vindas em NEGRITO
+                                if (node.nodeValue.includes('Olá! Nós da Aura Bank')) {
+                                    el.style.setProperty('font-weight', 'bold', 'important');
+                                }
+                            }
+                        }
+                    });
+
+                    const isMobile = document.body.classList.contains('mobile-view');
+
+                    const containerCss = isMobile ? `
                 .MessengerContainer-module__wrapper,
                 .MessengerContainer-module__openedWithoutMessages,
                 .MessengerContainer-module__opened {
@@ -167,7 +198,7 @@
                 }
             `;
 
-            const currentCss = containerCss + `
+                    const currentCss = containerCss + `
                 .PolicyWindow-module__default {
                     display: none !important;
                 }
@@ -189,14 +220,15 @@
                     letter-spacing: 0.5px !important;
                 }
             `;
-            
-            if (shadowStyle.textContent !== currentCss) {
-                shadowStyle.textContent = currentCss;
-            }
-        }
-    }, 100);
-    
-  })(); 
-</script>
+
+                    if (shadowStyle.textContent !== currentCss) {
+                        shadowStyle.textContent = currentCss;
+                    }
+                }
+            }, 100);
+
+        })(); 
+    </script>
 </body>
+
 </html>
